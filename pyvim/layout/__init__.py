@@ -12,15 +12,15 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import Processor, ConditionalProcessor, BeforeInput, ShowTrailingWhiteSpaceProcessor, Transformation, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
-from prompt_toolkit.layout.utils import explode_text_fragments
+from prompt_toolkit.layout.processors import ConditionalProcessor, BeforeInput, ShowTrailingWhiteSpaceProcessor, Transformation, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
+
 from prompt_toolkit.mouse_events import MouseEventType
 from prompt_toolkit.selection import SelectionType
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
 
-from .commands.lexer import create_command_lexer
-from .lexer import DocumentLexer
-from .welcome_message import WELCOME_MESSAGE_TOKENS, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
+from ..commands.lexer import create_command_lexer
+from ..lexer import DocumentLexer
+from ..welcome_message import WELCOME_MESSAGE_TOKENS, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
 
 import pyvim.window_arrangement as window_arrangement
 from functools import partial
@@ -594,6 +594,7 @@ class EditorLayout(object):
         def preview_search():
             return self.editor.incsearch
 
+        from .reporting_processor import ReportingProcessor
         input_processors = [
             # Processor for visualising spaces. (should come before the
             # selection processor, otherwise, we won't see these spaces
@@ -647,29 +648,6 @@ class EditorLayout(object):
             result.append(('class:soft-wrap', '...'))
             return result
         return ''
-
-
-class ReportingProcessor(Processor):
-    """
-    Highlight all pyflakes errors on the input.
-    """
-
-    def __init__(self, editor_buffer):
-        self.editor_buffer = editor_buffer
-
-    def apply_transformation(self, transformation_input):
-        fragments = transformation_input.fragments
-
-        if self.editor_buffer.report_errors:
-            for error in self.editor_buffer.report_errors:
-                if error.lineno == transformation_input.lineno:
-                    fragments = explode_text_fragments(fragments)
-                    for i in range(error.start_column, error.end_column):
-                        if i < len(fragments):
-                            fragments[i] = (
-                                'class:flakeserror', fragments[i][1])
-
-        return Transformation(fragments)
 
 
 def get_terminal_title(editor):
