@@ -4,27 +4,22 @@ The actual layout for the renderer.
 from __future__ import unicode_literals
 from prompt_toolkit.application.current import get_app
 import prompt_toolkit.filters
-from prompt_toolkit.key_binding.vi_state import InputMode
+
 from prompt_toolkit.layout import HSplit, VSplit, FloatContainer, Float, Layout
-from prompt_toolkit.layout.containers import Window, ConditionalContainer, ColorColumn, WindowAlign, ScrollOffsets
+from prompt_toolkit.layout.containers import Window, ConditionalContainer, ColorColumn, ScrollOffsets
 from prompt_toolkit.layout.controls import BufferControl
-from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import ConditionalProcessor, BeforeInput, ShowTrailingWhiteSpaceProcessor, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
+from prompt_toolkit.layout.processors import ConditionalProcessor, ShowTrailingWhiteSpaceProcessor, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
+from prompt_toolkit.widgets.toolbars import SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
 
-from prompt_toolkit.selection import SelectionType
-from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
-
-from ..commands.lexer import create_command_lexer
 from ..lexer import DocumentLexer
-from ..welcome_message import WELCOME_MESSAGE_TOKENS, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
+from ..welcome_message import WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
 
 import pyvim.window_arrangement as window_arrangement
 from functools import partial
 
-import re
 import sys
 
 __all__ = (
@@ -47,348 +42,6 @@ def _try_char(character, backup, encoding=sys.stdout.encoding):
 TABSTOP_DOT = _try_char('\u2508', '.')
 
 
-class CommandLine(ConditionalContainer):
-    """
-    The editor command line. (For at the bottom of the screen.)
-    """
-
-    def __init__(self, editor):
-        super(CommandLine, self).__init__(
-            Window(
-                BufferControl(
-                    buffer=editor.command_buffer,
-                    input_processors=[BeforeInput(':')],
-                    lexer=create_command_lexer()),
-                height=1),
-            filter=prompt_toolkit.filters.has_focus(editor.command_buffer))
-
-
-class WelcomeMessageWindow(ConditionalContainer):
-    """
-    Welcome message pop-up, which is shown during start-up when no other files
-    were opened.
-    """
-
-    def __init__(self, editor):
-        once_hidden = [False]  # Nonlocal
-
-        def condition():
-            # Get editor buffers
-            buffers = editor.window_arrangement.editor_buffers
-
-            # Only show when there is only one empty buffer, but once the
-            # welcome message has been hidden, don't show it again.
-            result = (len(buffers) == 1 and buffers[0].buffer.text == '' and
-                      buffers[0].location is None and not once_hidden[0])
-            if not result:
-                once_hidden[0] = True
-            return result
-
-        super(WelcomeMessageWindow, self).__init__(
-            Window(
-                FormattedTextControl(lambda: WELCOME_MESSAGE_TOKENS),
-                align=WindowAlign.CENTER,
-                style="class:welcome"),
-            filter=prompt_toolkit.filters.Condition(condition))
-
-
-def _bufferlist_overlay_visible(editor):
-    """
-    True when the buffer list overlay should be displayed.
-    (This is when someone starts typing ':b' or ':buffer' in the command line.)
-    """
-    @prompt_toolkit.filters.Condition
-    def overlay_is_visible():
-        app = get_app()
-
-        text = editor.command_buffer.text.lstrip()
-        return app.layout.has_focus(editor.command_buffer) and (
-            any(text.startswith(p) for p in ['b ', 'b! ', 'buffer', 'buffer!']))
-    return overlay_is_visible
-
-
-class BufferListOverlay(ConditionalContainer):
-    """
-    Floating window that shows the list of buffers when we are typing ':b'
-    inside the vim command line.
-    """
-
-    def __init__(self, editor):
-        def highlight_location(location, search_string, default_token):
-            """
-            Return a tokenlist with the `search_string` highlighted.
-            """
-            result = [(default_token, c) for c in location]
-
-            # Replace token of matching positions.
-            for m in re.finditer(re.escape(search_string), location):
-                for i in range(m.start(), m.end()):
-                    result[i] = ('class:searchmatch', result[i][1])
-
-            if location == search_string:
-                result[0] = (result[0][0] +
-                             ' [SetCursorPosition]', result[0][1])
-
-            return result
-
-        def get_tokens():
-            wa = editor.window_arrangement
-            buffer_infos = wa.list_open_buffers()
-
-            # Filter infos according to typed text.
-            input_params = editor.command_buffer.text.lstrip().split(None, 1)
-            search_string = input_params[1] if len(input_params) > 1 else ''
-
-            if search_string:
-                def matches(info):
-                    """
-                    True when we should show this entry.
-                    """
-                    # When the input appears in the location.
-                    if input_params[1] in (info.editor_buffer.location or ''):
-                        return True
-
-                    # When the input matches this buffer his index number.
-                    if input_params[1] in str(info.index):
-                        return True
-
-                    # When this entry is part of the current completions list.
-                    b = editor.command_buffer
-
-                    if b.complete_state and any(info.editor_buffer.location in c.display
-                                                for c in b.complete_state.completions
-                                                if info.editor_buffer.location is not None):
-                        return True
-
-                    return False
-
-                buffer_infos = [info for info in buffer_infos if matches(info)]
-
-            # Render output.
-            if len(buffer_infos) == 0:
-                return [('', ' No match found. ')]
-            else:
-                result = []
-
-                # Create title.
-                result.append(('', '  '))
-                result.append(('class:title', 'Open buffers\n'))
-
-                # Get length of longest location
-                max_location_len = max(
-                    len(info.editor_buffer.get_display_name()) for info in buffer_infos)
-
-                # Show info for each buffer.
-                for info in buffer_infos:
-                    eb = info.editor_buffer
-                    char = '%' if info.is_active else ' '
-                    char2 = 'a' if info.is_visible else ' '
-                    char3 = ' + ' if info.editor_buffer.has_unsaved_changes else '   '
-                    t = 'class:active' if info.is_active else ''
-
-                    result.extend([
-                        ('', ' '),
-                        (t, '%3i ' % info.index),
-                        (t, '%s' % char),
-                        (t, '%s ' % char2),
-                        (t, '%s ' % char3),
-                    ])
-                    result.extend(highlight_location(
-                        eb.get_display_name(), search_string, t))
-                    result.extend([
-                        (t, ' ' * (max_location_len - len(eb.get_display_name()))),
-                        (t + ' class:lineno', '  line %i' %
-                         (eb.buffer.document.cursor_position_row + 1)),
-                        (t, ' \n')
-                    ])
-                return result
-
-        super(BufferListOverlay, self).__init__(
-            Window(FormattedTextControl(get_tokens),
-                   style='class:bufferlist',
-                   scroll_offsets=ScrollOffsets(top=1, bottom=1)),
-            filter=_bufferlist_overlay_visible(editor))
-
-
-class MessageToolbarBar(ConditionalContainer):
-    """
-    Pop-up (at the bottom) for showing error/status messages.
-    """
-
-    def __init__(self, editor):
-        def get_tokens():
-            if editor.message:
-                return [('class:message', editor.message)]
-            else:
-                return []
-
-        super(MessageToolbarBar, self).__init__(
-            FormattedTextToolbar(get_tokens),
-            filter=prompt_toolkit.filters.Condition(lambda: editor.message is not None))
-
-
-class ReportMessageToolbar(ConditionalContainer):
-    """
-    Toolbar that shows the messages, given by the reporter.
-    (It shows the error message, related to the current line.)
-    """
-
-    def __init__(self, editor):
-        def get_formatted_text():
-            eb = editor.window_arrangement.active_editor_buffer
-
-            lineno = eb.buffer.document.cursor_position_row
-            errors = eb.report_errors
-
-            for e in errors:
-                if e.lineno == lineno:
-                    return e.formatted_text
-
-            return []
-
-        super(ReportMessageToolbar, self).__init__(
-            FormattedTextToolbar(get_formatted_text),
-            filter=~prompt_toolkit.filters.has_focus(editor.command_buffer) & ~prompt_toolkit.filters.is_searching & ~prompt_toolkit.filters.has_focus('system'))
-
-
-class WindowStatusBar(FormattedTextToolbar):
-    """
-    The status bar, which is shown below each window in a tab page.
-    """
-
-    def __init__(self, editor, editor_buffer):
-        def get_text():
-            app = get_app()
-
-            insert_mode = app.vi_state.input_mode in (
-                InputMode.INSERT, InputMode.INSERT_MULTIPLE)
-            replace_mode = app.vi_state.input_mode == InputMode.REPLACE
-            sel = editor_buffer.buffer.selection_state
-            temp_navigation = app.vi_state.temporary_navigation_mode
-            visual_line = sel is not None and sel.type == SelectionType.LINES
-            visual_block = sel is not None and sel.type == SelectionType.BLOCK
-            visual_char = sel is not None and sel.type == SelectionType.CHARACTERS
-
-            def mode():
-                if get_app().layout.has_focus(editor_buffer.buffer):
-                    if insert_mode:
-                        if temp_navigation:
-                            return ' -- (insert) --'
-                        elif editor.paste_mode:
-                            return ' -- INSERT (paste)--'
-                        else:
-                            return ' -- INSERT --'
-                    elif replace_mode:
-                        if temp_navigation:
-                            return ' -- (replace) --'
-                        else:
-                            return ' -- REPLACE --'
-                    elif visual_block:
-                        return ' -- VISUAL BLOCK --'
-                    elif visual_line:
-                        return ' -- VISUAL LINE --'
-                    elif visual_char:
-                        return ' -- VISUAL --'
-                return '                     '
-
-            def recording():
-                if app.vi_state.recording_register:
-                    return 'recording '
-                else:
-                    return ''
-
-            return ''.join([
-                ' ',
-                recording(),
-                (editor_buffer.location or ''),
-                (' [New File]' if editor_buffer.is_new else ''),
-                ('*' if editor_buffer.has_unsaved_changes else ''),
-                (' '),
-                mode(),
-            ])
-        super(WindowStatusBar, self).__init__(
-            get_text,
-            style='class:toolbar.status')
-
-
-class WindowStatusBarRuler(ConditionalContainer):
-    """
-    The right side of the Vim toolbar, showing the location of the cursor in
-    the file, and the vectical scroll percentage.
-    """
-
-    def __init__(self, editor, buffer_window, buffer):
-        def get_scroll_text():
-            info = buffer_window.render_info
-
-            if info:
-                if info.full_height_visible:
-                    return 'All'
-                elif info.top_visible:
-                    return 'Top'
-                elif info.bottom_visible:
-                    return 'Bot'
-                else:
-                    percentage = info.vertical_scroll_percentage
-                    return '%2i%%' % percentage
-
-            return ''
-
-        def get_tokens():
-            main_document = buffer.document
-
-            return [
-                ('class:cursorposition', '(%i,%i)' % (main_document.cursor_position_row + 1,
-                                                      main_document.cursor_position_col + 1)),
-                ('', ' - '),
-                ('class:percentage', get_scroll_text()),
-                ('', ' '),
-            ]
-
-        super(WindowStatusBarRuler, self).__init__(
-            Window(
-                FormattedTextControl(get_tokens),
-                char=' ',
-                align=WindowAlign.RIGHT,
-                style='class:toolbar.status',
-                height=1,
-            ),
-            filter=prompt_toolkit.filters.Condition(lambda: editor.show_ruler))
-
-
-class SimpleArgToolbar(ConditionalContainer):
-    """
-    Simple control showing the Vi repeat arg.
-    """
-
-    def __init__(self):
-        def get_tokens():
-            arg = get_app().key_processor.arg
-            if arg is not None:
-                return [('class:arg', ' %s ' % arg)]
-            else:
-                return []
-
-        super(SimpleArgToolbar, self).__init__(
-            Window(FormattedTextControl(get_tokens), align=WindowAlign.RIGHT),
-            filter=prompt_toolkit.filters.has_arg),
-
-
-class PyvimScrollOffsets(ScrollOffsets):
-    def __init__(self, editor):
-        self.editor = editor
-        self._left = 0
-        self._right = 0
-
-    @property
-    def top(self):
-        return self.editor.scroll_offset
-
-    @property
-    def bottom(self):
-        return self.editor.scroll_offset
-
-
 class EditorLayout(object):
     """
     The main layout class.
@@ -405,6 +58,10 @@ class EditorLayout(object):
         # update call, because that way, we would loose some state, like the
         # vertical scroll offset.)
         self._frames = {}
+
+        from .welcome_message import WelcomeMessageWindow
+        from .buffer_list import BufferListOverlay, _bufferlist_overlay_visible
+        from .message_toolbar import MessageToolbarBar
 
         self._fc = FloatContainer(
             content=VSplit([
@@ -437,6 +94,9 @@ class EditorLayout(object):
         self.search_control = search_toolbar.control
 
         from .tabs_control import TabsToolbar
+        from .command_line import CommandLine
+        from .report_message_toolbar import ReportMessageToolbar
+        from .simple_arg_toolbar import SimpleArgToolbar
 
         self.layout = Layout(FloatContainer(
             content=HSplit([
@@ -525,6 +185,9 @@ class EditorLayout(object):
             ignore_content_width=True,
             ignore_content_height=True,
             get_line_prefix=partial(self._get_line_prefix, editor_buffer.buffer))
+
+        from .window_statusbar import WindowStatusBar
+        from .window_statusbar_ruler import WindowStatusBarRuler
 
         return HSplit([
             window,
