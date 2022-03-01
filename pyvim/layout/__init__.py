@@ -12,9 +12,8 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import ConditionalProcessor, BeforeInput, ShowTrailingWhiteSpaceProcessor, Transformation, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
+from prompt_toolkit.layout.processors import ConditionalProcessor, BeforeInput, ShowTrailingWhiteSpaceProcessor, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
 
-from prompt_toolkit.mouse_events import MouseEventType
 from prompt_toolkit.selection import SelectionType
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
 
@@ -46,58 +45,6 @@ def _try_char(character, backup, encoding=sys.stdout.encoding):
 
 
 TABSTOP_DOT = _try_char('\u2508', '.')
-
-
-class TabsControl(FormattedTextControl):
-    """
-    Displays the tabs at the top of the screen, when there is more than one
-    open tab.
-    """
-
-    def __init__(self, editor):
-        def location_for_tab(tab):
-            return tab.active_window.editor_buffer.get_display_name(short=True)
-
-        def create_tab_handler(index):
-            " Return a mouse handler for this tab. Select the tab on click. "
-            def handler(app, mouse_event):
-                if mouse_event.event_type == MouseEventType.MOUSE_DOWN:
-                    editor.window_arrangement.active_tab_index = index
-                    editor.sync_with_prompt_toolkit()
-                else:
-                    return NotImplemented
-            return handler
-
-        def get_tokens():
-            selected_tab_index = editor.window_arrangement.active_tab_index
-
-            result = []
-            append = result.append
-
-            for i, tab in enumerate(editor.window_arrangement.tab_pages):
-                caption = location_for_tab(tab)
-                if tab.has_unsaved_changes:
-                    caption = ' + ' + caption
-
-                handler = create_tab_handler(i)
-
-                if i == selected_tab_index:
-                    append(('class:tabbar.tab.active', ' %s ' %
-                           caption, handler))
-                else:
-                    append(('class:tabbar.tab', ' %s ' % caption, handler))
-                append(('class:tabbar', ' '))
-
-            return result
-
-        super(TabsControl, self).__init__(get_tokens, style='class:tabbar')
-
-
-class TabsToolbar(ConditionalContainer):
-    def __init__(self, editor):
-        super(TabsToolbar, self).__init__(
-            Window(TabsControl(editor), height=1),
-            filter=prompt_toolkit.filters.Condition(lambda: len(editor.window_arrangement.tab_pages) > 1))
 
 
 class CommandLine(ConditionalContainer):
@@ -488,6 +435,8 @@ class EditorLayout(object):
         search_toolbar = SearchToolbar(
             vi_mode=True, search_buffer=editor.search_buffer)
         self.search_control = search_toolbar.control
+
+        from .tabs_control import TabsToolbar
 
         self.layout = Layout(FloatContainer(
             content=HSplit([

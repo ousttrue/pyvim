@@ -10,7 +10,8 @@
             "request": "launch",
             "module": "pyvim.entry_points.run_pyvim",
             "args": [
-                "pyvim/editor.py"
+                "pyvim/editor.py",
+                "pyvim/layout",
             ],
             "cwd": "${workspaceFolder}",
             "console": "externalTerminal"
