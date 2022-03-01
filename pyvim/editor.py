@@ -7,15 +7,16 @@ Usage::
     e = Editor(files_to_edit)
     e.run()  # Runs the event loop, starts interaction.
 """
-from __future__ import unicode_literals
-
-from prompt_toolkit.application import Application
-from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.enums import EditingMode
-from prompt_toolkit.filters import Condition
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding.vi_state import InputMode
-from prompt_toolkit.styles import DynamicStyle
+from typing import Optional
+import prompt_toolkit.application
+import prompt_toolkit.buffer
+import prompt_toolkit.enums
+import prompt_toolkit.filters
+import prompt_toolkit.history
+import prompt_toolkit.key_binding.vi_state
+import prompt_toolkit.styles
+import prompt_toolkit.input
+import prompt_toolkit.output
 
 from .commands.completer import create_command_completer
 from .commands.handler import handle_command
@@ -43,7 +44,10 @@ class Editor(object):
     :param input: (Optionally) `prompt_toolkit.input.Input` object.
     :param output: (Optionally) `prompt_toolkit.output.Output` object.
     """
-    def __init__(self, config_directory='~/.pyvim', input=None, output=None):
+
+    def __init__(self, config_directory: str = '~/.pyvim',
+                 input: Optional[prompt_toolkit.input.Input] = None,
+                 output: Optional[prompt_toolkit.output.Output] = None):
         self.input = input
         self.output = output
 
@@ -69,7 +73,8 @@ class Editor(object):
         self.colorcolumn = []  # ':set colorcolumn'. List of integers.
 
         # Ensure config directory exists.
-        self.config_directory = os.path.abspath(os.path.expanduser(config_directory))
+        self.config_directory = os.path.abspath(
+            os.path.expanduser(config_directory))
         if not os.path.exists(self.config_directory):
             os.mkdir(self.config_directory)
 
@@ -89,7 +94,7 @@ class Editor(object):
         ]
 
         # Create history and search buffers.
-        def handle_action(buff):
+        def handle_action(buff: prompt_toolkit.buffer.Buffer) -> bool:
             ' When enter is pressed in the Vi command line. '
             text = buff.text  # Remember: leave_command_mode resets the buffer.
 
@@ -100,16 +105,20 @@ class Editor(object):
             # Execute command.
             handle_command(self, text)
 
-        commands_history = FileHistory(os.path.join(self.config_directory, 'commands_history'))
-        self.command_buffer = Buffer(
+            return False
+
+        commands_history = prompt_toolkit.history.FileHistory(os.path.join(
+            self.config_directory, 'commands_history'))
+        self.command_buffer = prompt_toolkit.buffer.Buffer(
             accept_handler=handle_action,
             enable_history_search=True,
             completer=create_command_completer(self),
             history=commands_history,
             multiline=False)
 
-        search_buffer_history = FileHistory(os.path.join(self.config_directory, 'search_history'))
-        self.search_buffer = Buffer(
+        search_buffer_history = prompt_toolkit.history.FileHistory(
+            os.path.join(self.config_directory, 'search_history'))
+        self.search_buffer = prompt_toolkit.buffer.Buffer(
             history=search_buffer_history,
             enable_history_search=True,
             multiline=False)
@@ -163,18 +172,21 @@ class Editor(object):
         Create CommandLineInterface instance.
         """
         # Create Application.
-        application = Application(
+        application = prompt_toolkit.application.Application(
             input=self.input,
             output=self.output,
-            editing_mode=EditingMode.VI,
+            editing_mode=prompt_toolkit.enums.EditingMode.VI,
             layout=self.editor_layout.layout,
             key_bindings=self.key_bindings,
-#            get_title=lambda: get_terminal_title(self),
-            style=DynamicStyle(lambda: self.current_style),
-            paste_mode=Condition(lambda: self.paste_mode),
-#            ignore_case=Condition(lambda: self.ignore_case),  # TODO
+            #            get_title=lambda: get_terminal_title(self),
+            style=prompt_toolkit.styles.DynamicStyle(
+                lambda: self.current_style),
+            paste_mode=prompt_toolkit.filters.Condition(
+                lambda: self.paste_mode),
+            #            ignore_case=Condition(lambda: self.ignore_case),  # TODO
             include_default_pygments_style=False,
-            mouse_support=Condition(lambda: self.enable_mouse_support),
+            mouse_support=prompt_toolkit.filters.Condition(
+                lambda: self.enable_mouse_support),
             full_screen=True,
             enable_page_navigation_bindings=True)
 
@@ -256,7 +268,7 @@ class Editor(object):
 
         def pre_run():
             # Start in navigation mode.
-            self.application.vi_state.input_mode = InputMode.NAVIGATION
+            self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
 
         # Run eventloop of prompt_toolkit.
         self.application.run(pre_run=pre_run)
@@ -266,7 +278,7 @@ class Editor(object):
         Go into command mode.
         """
         self.application.layout.focus(self.command_buffer)
-        self.application.vi_state.input_mode = InputMode.INSERT
+        self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.INSERT
 
         self.previewer.save()
 
@@ -277,6 +289,6 @@ class Editor(object):
         self.previewer.restore()
 
         self.application.layout.focus_last()
-        self.application.vi_state.input_mode = InputMode.NAVIGATION
+        self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
 
         self.command_buffer.reset(append_to_history=append_to_history)

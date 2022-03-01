@@ -3,7 +3,7 @@ The actual layout for the renderer.
 """
 from __future__ import unicode_literals
 from prompt_toolkit.application.current import get_app
-from prompt_toolkit.filters import has_focus, is_searching, Condition, has_arg
+import prompt_toolkit.filters
 from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.layout import HSplit, VSplit, FloatContainer, Float, Layout
 from prompt_toolkit.layout.containers import Window, ConditionalContainer, ColorColumn, WindowAlign, ScrollOffsets
@@ -33,6 +33,7 @@ __all__ = (
     'get_terminal_title',
 )
 
+
 def _try_char(character, backup, encoding=sys.stdout.encoding):
     """
     Return `character` if it can be encoded using sys.stdout, else return the
@@ -52,6 +53,7 @@ class TabsControl(FormattedTextControl):
     Displays the tabs at the top of the screen, when there is more than one
     open tab.
     """
+
     def __init__(self, editor):
         def location_for_tab(tab):
             return tab.active_window.editor_buffer.get_display_name(short=True)
@@ -80,7 +82,8 @@ class TabsControl(FormattedTextControl):
                 handler = create_tab_handler(i)
 
                 if i == selected_tab_index:
-                    append(('class:tabbar.tab.active', ' %s ' % caption, handler))
+                    append(('class:tabbar.tab.active', ' %s ' %
+                           caption, handler))
                 else:
                     append(('class:tabbar.tab', ' %s ' % caption, handler))
                 append(('class:tabbar', ' '))
@@ -94,13 +97,14 @@ class TabsToolbar(ConditionalContainer):
     def __init__(self, editor):
         super(TabsToolbar, self).__init__(
             Window(TabsControl(editor), height=1),
-            filter=Condition(lambda: len(editor.window_arrangement.tab_pages) > 1))
+            filter=prompt_toolkit.filters.Condition(lambda: len(editor.window_arrangement.tab_pages) > 1))
 
 
 class CommandLine(ConditionalContainer):
     """
     The editor command line. (For at the bottom of the screen.)
     """
+
     def __init__(self, editor):
         super(CommandLine, self).__init__(
             Window(
@@ -109,7 +113,7 @@ class CommandLine(ConditionalContainer):
                     input_processors=[BeforeInput(':')],
                     lexer=create_command_lexer()),
                 height=1),
-            filter=has_focus(editor.command_buffer))
+            filter=prompt_toolkit.filters.has_focus(editor.command_buffer))
 
 
 class WelcomeMessageWindow(ConditionalContainer):
@@ -117,6 +121,7 @@ class WelcomeMessageWindow(ConditionalContainer):
     Welcome message pop-up, which is shown during start-up when no other files
     were opened.
     """
+
     def __init__(self, editor):
         once_hidden = [False]  # Nonlocal
 
@@ -137,7 +142,7 @@ class WelcomeMessageWindow(ConditionalContainer):
                 FormattedTextControl(lambda: WELCOME_MESSAGE_TOKENS),
                 align=WindowAlign.CENTER,
                 style="class:welcome"),
-            filter=Condition(condition))
+            filter=prompt_toolkit.filters.Condition(condition))
 
 
 def _bufferlist_overlay_visible(editor):
@@ -145,13 +150,13 @@ def _bufferlist_overlay_visible(editor):
     True when the buffer list overlay should be displayed.
     (This is when someone starts typing ':b' or ':buffer' in the command line.)
     """
-    @Condition
+    @prompt_toolkit.filters.Condition
     def overlay_is_visible():
         app = get_app()
 
         text = editor.command_buffer.text.lstrip()
         return app.layout.has_focus(editor.command_buffer) and (
-                any(text.startswith(p) for p in ['b ', 'b! ', 'buffer', 'buffer!']))
+            any(text.startswith(p) for p in ['b ', 'b! ', 'buffer', 'buffer!']))
     return overlay_is_visible
 
 
@@ -160,6 +165,7 @@ class BufferListOverlay(ConditionalContainer):
     Floating window that shows the list of buffers when we are typing ':b'
     inside the vim command line.
     """
+
     def __init__(self, editor):
         def highlight_location(location, search_string, default_token):
             """
@@ -173,7 +179,8 @@ class BufferListOverlay(ConditionalContainer):
                     result[i] = ('class:searchmatch', result[i][1])
 
             if location == search_string:
-                result[0] = (result[0][0] + ' [SetCursorPosition]', result[0][1])
+                result[0] = (result[0][0] +
+                             ' [SetCursorPosition]', result[0][1])
 
             return result
 
@@ -221,7 +228,8 @@ class BufferListOverlay(ConditionalContainer):
                 result.append(('class:title', 'Open buffers\n'))
 
                 # Get length of longest location
-                max_location_len = max(len(info.editor_buffer.get_display_name()) for info in buffer_infos)
+                max_location_len = max(
+                    len(info.editor_buffer.get_display_name()) for info in buffer_infos)
 
                 # Show info for each buffer.
                 for info in buffer_infos:
@@ -238,10 +246,12 @@ class BufferListOverlay(ConditionalContainer):
                         (t, '%s ' % char2),
                         (t, '%s ' % char3),
                     ])
-                    result.extend(highlight_location(eb.get_display_name(), search_string, t))
+                    result.extend(highlight_location(
+                        eb.get_display_name(), search_string, t))
                     result.extend([
                         (t, ' ' * (max_location_len - len(eb.get_display_name()))),
-                        (t + ' class:lineno', '  line %i' % (eb.buffer.document.cursor_position_row + 1)),
+                        (t + ' class:lineno', '  line %i' %
+                         (eb.buffer.document.cursor_position_row + 1)),
                         (t, ' \n')
                     ])
                 return result
@@ -257,6 +267,7 @@ class MessageToolbarBar(ConditionalContainer):
     """
     Pop-up (at the bottom) for showing error/status messages.
     """
+
     def __init__(self, editor):
         def get_tokens():
             if editor.message:
@@ -266,7 +277,7 @@ class MessageToolbarBar(ConditionalContainer):
 
         super(MessageToolbarBar, self).__init__(
             FormattedTextToolbar(get_tokens),
-            filter=Condition(lambda: editor.message is not None))
+            filter=prompt_toolkit.filters.Condition(lambda: editor.message is not None))
 
 
 class ReportMessageToolbar(ConditionalContainer):
@@ -274,6 +285,7 @@ class ReportMessageToolbar(ConditionalContainer):
     Toolbar that shows the messages, given by the reporter.
     (It shows the error message, related to the current line.)
     """
+
     def __init__(self, editor):
         def get_formatted_text():
             eb = editor.window_arrangement.active_editor_buffer
@@ -288,19 +300,21 @@ class ReportMessageToolbar(ConditionalContainer):
             return []
 
         super(ReportMessageToolbar, self).__init__(
-                FormattedTextToolbar(get_formatted_text),
-                filter=~has_focus(editor.command_buffer) & ~is_searching & ~has_focus('system'))
+            FormattedTextToolbar(get_formatted_text),
+            filter=~prompt_toolkit.filters.has_focus(editor.command_buffer) & ~prompt_toolkit.filters.is_searching & ~prompt_toolkit.filters.has_focus('system'))
 
 
 class WindowStatusBar(FormattedTextToolbar):
     """
     The status bar, which is shown below each window in a tab page.
     """
+
     def __init__(self, editor, editor_buffer):
         def get_text():
             app = get_app()
 
-            insert_mode = app.vi_state.input_mode in (InputMode.INSERT, InputMode.INSERT_MULTIPLE)
+            insert_mode = app.vi_state.input_mode in (
+                InputMode.INSERT, InputMode.INSERT_MULTIPLE)
             replace_mode = app.vi_state.input_mode == InputMode.REPLACE
             sel = editor_buffer.buffer.selection_state
             temp_navigation = app.vi_state.temporary_navigation_mode
@@ -355,6 +369,7 @@ class WindowStatusBarRuler(ConditionalContainer):
     The right side of the Vim toolbar, showing the location of the cursor in
     the file, and the vectical scroll percentage.
     """
+
     def __init__(self, editor, buffer_window, buffer):
         def get_scroll_text():
             info = buffer_window.render_info
@@ -391,13 +406,14 @@ class WindowStatusBarRuler(ConditionalContainer):
                 style='class:toolbar.status',
                 height=1,
             ),
-            filter=Condition(lambda: editor.show_ruler))
+            filter=prompt_toolkit.filters.Condition(lambda: editor.show_ruler))
 
 
 class SimpleArgToolbar(ConditionalContainer):
     """
     Simple control showing the Vi repeat arg.
     """
+
     def __init__(self):
         def get_tokens():
             arg = get_app().key_processor.arg
@@ -408,14 +424,14 @@ class SimpleArgToolbar(ConditionalContainer):
 
         super(SimpleArgToolbar, self).__init__(
             Window(FormattedTextControl(get_tokens), align=WindowAlign.RIGHT),
-            filter=has_arg),
+            filter=prompt_toolkit.filters.has_arg),
 
 
 class PyvimScrollOffsets(ScrollOffsets):
     def __init__(self, editor):
         self.editor = editor
-        self.left = 0
-        self.right = 0
+        self._left = 0
+        self._right = 0
 
     @property
     def top(self):
@@ -430,7 +446,8 @@ class EditorLayout(object):
     """
     The main layout class.
     """
-    def __init__(self, editor, window_arrangement):
+
+    def __init__(self, editor, window_arrangement: window_arrangement.WindowArrangement):
         self.editor = editor  # Back reference to editor.
         self.window_arrangement = window_arrangement
 
@@ -450,14 +467,14 @@ class EditorLayout(object):
                 Float(xcursor=True, ycursor=True,
                       content=CompletionsMenu(max_height=12,
                                               scroll_offset=2,
-                                              extra_filter=~has_focus(editor.command_buffer))),
+                                              extra_filter=~prompt_toolkit.filters.has_focus(editor.command_buffer))),
                 Float(content=BufferListOverlay(editor), bottom=1, left=0),
                 Float(bottom=1, left=0, right=0, height=1,
                       content=ConditionalContainer(
                           CompletionsToolbar(),
-                          filter=has_focus(editor.command_buffer) &
-                                       ~_bufferlist_overlay_visible(editor) &
-                                       Condition(lambda: editor.show_wildmenu))),
+                          filter=prompt_toolkit.filters.has_focus(editor.command_buffer) &
+                          ~_bufferlist_overlay_visible(editor) &
+                          prompt_toolkit.filters.Condition(lambda: editor.show_wildmenu))),
                 Float(bottom=1, left=0, right=0, height=1,
                       content=ValidationToolbar()),
                 Float(bottom=1, left=0, right=0, height=1,
@@ -468,7 +485,8 @@ class EditorLayout(object):
             ]
         )
 
-        search_toolbar = SearchToolbar(vi_mode=True, search_buffer=editor.search_buffer)
+        search_toolbar = SearchToolbar(
+            vi_mode=True, search_buffer=editor.search_buffer)
         self.search_control = search_toolbar.control
 
         self.layout = Layout(FloatContainer(
@@ -505,7 +523,8 @@ class EditorLayout(object):
                 key = (node, node.editor_buffer)
                 frame = existing_frames.get(key)
                 if frame is None:
-                    frame, pt_window = self._create_window_frame(node.editor_buffer)
+                    frame, pt_window = self._create_window_frame(
+                        node.editor_buffer)
 
                     # Link layout Window to arrangement.
                     node.pt_window = pt_window
@@ -523,14 +542,15 @@ class EditorLayout(object):
             if isinstance(node, window_arrangement.HSplit):
                 return HSplit([create_layout_from_node(n) for n in node])
 
-        layout = create_layout_from_node(self.window_arrangement.active_tab.root)
+        layout = create_layout_from_node(
+            self.window_arrangement.active_tab.root)
         self._fc.content = layout
 
     def _create_window_frame(self, editor_buffer):
         """
         Create a Window for the buffer, with underneat a status bar.
         """
-        @Condition
+        @prompt_toolkit.filters.Condition
         def wrap_lines():
             return self.editor.wrap_lines
 
@@ -543,12 +563,14 @@ class EditorLayout(object):
                 bottom=(lambda: self.editor.scroll_offset)),
             wrap_lines=wrap_lines,
             left_margins=[ConditionalMargin(
-                    margin=NumberedMargin(
-                        display_tildes=True,
-                        relative=Condition(lambda: self.editor.relative_number)),
-                    filter=Condition(lambda: self.editor.show_line_numbers))],
-            cursorline=Condition(lambda: self.editor.cursorline),
-            cursorcolumn=Condition(lambda: self.editor.cursorcolumn),
+                margin=NumberedMargin(
+                    display_tildes=True,
+                    relative=prompt_toolkit.filters.Condition(lambda: self.editor.relative_number)),
+                filter=prompt_toolkit.filters.Condition(lambda: self.editor.show_line_numbers))],
+            cursorline=prompt_toolkit.filters.Condition(
+                lambda: self.editor.cursorline),
+            cursorcolumn=prompt_toolkit.filters.Condition(
+                lambda: self.editor.cursorcolumn),
             colorcolumns=(
                 lambda: [ColorColumn(pos) for pos in self.editor.colorcolumn]),
             ignore_content_width=True,
@@ -559,7 +581,8 @@ class EditorLayout(object):
             window,
             VSplit([
                 WindowStatusBar(self.editor, editor_buffer),
-                WindowStatusBarRuler(self.editor, window, editor_buffer.buffer),
+                WindowStatusBarRuler(self.editor, window,
+                                     editor_buffer.buffer),
             ], width=Dimension()),  # Ignore actual status bar width.
         ]), window
 
@@ -567,7 +590,7 @@ class EditorLayout(object):
         """
         Create a new BufferControl for a given location.
         """
-        @Condition
+        @prompt_toolkit.filters.Condition
         def preview_search():
             return self.editor.incsearch
 
@@ -577,14 +600,15 @@ class EditorLayout(object):
             # selected.)
             ConditionalProcessor(
                 ShowTrailingWhiteSpaceProcessor(),
-                Condition(lambda: self.editor.display_unprintable_characters)),
+                prompt_toolkit.filters.Condition(lambda: self.editor.display_unprintable_characters)),
 
             # Replace tabs by spaces.
             TabsProcessor(
                 tabstop=(lambda: self.editor.tabstop),
-                char1=(lambda: '|' if self.editor.display_unprintable_characters else ' '),
+                char1=(
+                    lambda: '|' if self.editor.display_unprintable_characters else ' '),
                 char2=(lambda: _try_char('\u2508', '.', get_app().output.encoding())
-                                       if self.editor.display_unprintable_characters else ' '),
+                       if self.editor.display_unprintable_characters else ' '),
             ),
 
             # Reporting of errors, for Pyflakes.
@@ -592,10 +616,10 @@ class EditorLayout(object):
             HighlightSelectionProcessor(),
             ConditionalProcessor(
                 HighlightSearchProcessor(),
-                Condition(lambda: self.editor.highlight_search)),
+                prompt_toolkit.filters.Condition(lambda: self.editor.highlight_search)),
             ConditionalProcessor(
                 HighlightIncrementalSearchProcessor(),
-                Condition(lambda: self.editor.highlight_search) & preview_search),
+                prompt_toolkit.filters.Condition(lambda: self.editor.highlight_search) & preview_search),
             HighlightMatchingBracketProcessor(),
             DisplayMultipleCursors(),
         ]
@@ -624,14 +648,16 @@ class EditorLayout(object):
             return result
         return ''
 
+
 class ReportingProcessor(Processor):
     """
     Highlight all pyflakes errors on the input.
     """
+
     def __init__(self, editor_buffer):
         self.editor_buffer = editor_buffer
 
-    def apply_transformation(self, transformation_input): 
+    def apply_transformation(self, transformation_input):
         fragments = transformation_input.fragments
 
         if self.editor_buffer.report_errors:
@@ -640,10 +666,10 @@ class ReportingProcessor(Processor):
                     fragments = explode_text_fragments(fragments)
                     for i in range(error.start_column, error.end_column):
                         if i < len(fragments):
-                            fragments[i] = ('class:flakeserror', fragments[i][1])
+                            fragments[i] = (
+                                'class:flakeserror', fragments[i][1])
 
         return Transformation(fragments)
-
 
 
 def get_terminal_title(editor):
