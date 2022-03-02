@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from six import string_types
 import weakref
 
-from .editor_buffer import EditorBuffer
+from ..editor_buffer import EditorBuffer
 
 __all__ = (
     'WindowArrangement',
