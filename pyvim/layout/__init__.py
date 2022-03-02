@@ -15,7 +15,6 @@ from prompt_toolkit.layout.processors import ConditionalProcessor, ShowTrailingW
 from prompt_toolkit.widgets.toolbars import SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
 
 from ..lexer import DocumentLexer
-from ..welcome_message import WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
 
 import pyvim.window_arrangement as window_arrangement
 from functools import partial
@@ -24,7 +23,6 @@ import sys
 
 __all__ = (
     'EditorLayout',
-    'get_terminal_title',
 )
 
 
@@ -59,7 +57,7 @@ class EditorLayout(object):
         # vertical scroll offset.)
         self._frames = {}
 
-        from .welcome_message import WelcomeMessageWindow
+        from .welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
         from .buffer_list import BufferListOverlay, _bufferlist_overlay_visible
         from .message_toolbar import MessageToolbarBar
 
@@ -83,7 +81,7 @@ class EditorLayout(object):
                       content=ValidationToolbar()),
                 Float(bottom=1, left=0, right=0, height=1,
                       content=MessageToolbarBar(editor)),
-                Float(content=WelcomeMessageWindow(editor),
+                Float(content=WelcomeMessageWindow(window_arrangement),
                       height=WELCOME_MESSAGE_HEIGHT,
                       width=WELCOME_MESSAGE_WIDTH),
             ]
@@ -260,15 +258,3 @@ class EditorLayout(object):
             result.append(('class:soft-wrap', '...'))
             return result
         return ''
-
-
-def get_terminal_title(editor):
-    """
-    Return the terminal title,
-    e.g.: "filename.py (/directory) - Pyvim"
-    """
-    eb = editor.current_editor_buffer
-    if eb is not None:
-        return '%s - Pyvim' % (eb.location or '[New file]', )
-    else:
-        return 'Pyvim'
