@@ -17,14 +17,14 @@ class EditorIO(six.with_metaclass(ABCMeta, object)):
     ending with .gz.
     """
     @abstractmethod
-    def can_open_location(cls, location):
+    def can_open_location(cls, location: str):
         """
         Return True when this I/O implementation is able to handle this `location`.
         """
         return False
 
     @abstractmethod
-    def exists(self, location):
+    def exists(self, location: str):
         """
         Return whether this location exists in this storage..
         (If not, this is a new file.)
@@ -32,20 +32,20 @@ class EditorIO(six.with_metaclass(ABCMeta, object)):
         return True
 
     @abstractmethod
-    def read(self, location):
+    def read(self, location: str):
         """
         Read file for storage. Returns (text, encoding tuple.)
         Can raise IOError.
         """
 
     @abstractmethod
-    def write(self, location, data, encoding='utf-8'):
+    def write(self, location: str, data, encoding='utf-8'):
         """
         Write file to storage.
         Can raise IOError.
         """
 
-    def isdir(self, location):
+    def isdir(self, location: str):
         """
         Return whether this location is a directory.
         """

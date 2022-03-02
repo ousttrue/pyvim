@@ -5,217 +5,24 @@ This contains the data structure for the tab pages with their windows and
 buffers. It's not the same as a `prompt-toolkit` layout. The latter directly
 represents the rendering, while this is more specific for the editor itself.
 """
-from __future__ import unicode_literals
+from typing import List, Optional
 from six import string_types
 import weakref
-
 from ..editor_buffer import EditorBuffer
+from .tab_page import TabPage, Window, VSplit, HSplit
+import prompt_toolkit.layout.containers
 
 __all__ = (
     'WindowArrangement',
 )
 
 
-class HSplit(list):
-    """ Horizontal split. (This is a higher level split than
-    prompt_toolkit.layout.HSplit.) """
-
-
-class VSplit(list):
-    """ Horizontal split. """
-
-
-class Window(object):
-    """
-    Editor window: a window can show any open buffer.
-    """
-    def __init__(self, editor_buffer):
-        assert isinstance(editor_buffer, EditorBuffer)
-        self.editor_buffer = editor_buffer
-
-        # The prompt_toolkit layout Window.
-        self.pt_window = None
-
-    def __repr__(self):
-        return '%s(editor_buffer=%r)' % (self.__class__.__name__, self.editor_buffer)
-
-
-class TabPage(object):
-    """
-    Tab page. Container for windows.
-    """
-    def __init__(self, window):
-        assert isinstance(window, Window)
-        self.root = VSplit([window])
-
-        # Keep track of which window is focusesd in this tab.
-        self.active_window = window
-
-    def windows(self):
-        """ Return a list of all windows in this tab page. """
-        return [window for _, window in self._walk_through_windows()]
-
-    def window_count(self):
-        """ The amount of windows in this tab. """
-        return len(self.windows())
-
-    def visible_editor_buffers(self):
-        """
-        Return a list of visible `EditorBuffer` instances.
-        """
-        return [w.editor_buffer for w in self.windows()]
-
-    def _walk_through_windows(self):
-        """
-        Yields (Split, Window) tuples.
-        """
-        def walk(split):
-            for c in split:
-                if isinstance(c, (HSplit, VSplit)):
-                    for i in walk(c):
-                        yield i
-                elif isinstance(c, Window):
-                    yield split, c
-
-        return walk(self.root)
-
-    def _walk_through_splits(self):
-        """
-        Yields (parent_split, child_plit) tuples.
-        """
-        def walk(split):
-            for c in split:
-                if isinstance(c, (HSplit, VSplit)):
-                    yield split, c
-                    for i in walk(c):
-                        yield i
-
-        return walk(self.root)
-
-    def _get_active_split(self):
-        for split, window in self._walk_through_windows():
-            if window == self.active_window:
-                return split
-        raise Exception('active_window not found. Something is wrong.')
-
-    def _get_split_parent(self, split):
-        for parent, child in self._walk_through_splits():
-            if child == split:
-                return parent
-
-    def _split(self, split_cls, editor_buffer=None):
-        """
-        Split horizontal or vertical.
-        (when editor_buffer is None, show the current buffer there as well.)
-        """
-        if editor_buffer is None:
-            editor_buffer = self.active_window.editor_buffer
-
-        active_split = self._get_active_split()
-        index = active_split.index(self.active_window)
-        new_window = Window(editor_buffer)
-
-        if isinstance(active_split, split_cls):
-            # Add new window to active split.
-            active_split.insert(index, new_window)
-        else:
-            # Split in the other direction.
-            active_split[index] = split_cls([active_split[index], new_window])
-
-        # Focus new window.
-        self.active_window = new_window
-
-    def hsplit(self, editor_buffer=None):
-        """
-        Split active window horizontally.
-        """
-        self._split(HSplit, editor_buffer)
-
-    def vsplit(self, editor_buffer=None):
-        """
-        Split active window vertically.
-        """
-        self._split(VSplit, editor_buffer)
-
-    def show_editor_buffer(self, editor_buffer):
-        """
-        Open this `EditorBuffer` in the active window.
-        """
-        assert isinstance(editor_buffer, EditorBuffer)
-        self.active_window.editor_buffer = editor_buffer
-
-    def close_editor_buffer(self, editor_buffer):
-        """
-        Close all the windows that have this editor buffer open.
-        """
-        for split, window in self._walk_through_windows():
-            if window.editor_buffer == editor_buffer:
-                self._close_window(window)
-
-    def _close_window(self, window):
-        """
-        Close this window.
-        """
-        if window == self.active_window:
-            self.close_active_window()
-        else:
-            original_active_window = self.active_window
-            self.close_active_window()
-            self.active_window = original_active_window
-
-    def close_active_window(self):
-        """
-        Close active window.
-        """
-        active_split = self._get_active_split()
-
-        # First remove the active window from its split.
-        index = active_split.index(self.active_window)
-        del active_split[index]
-
-        # Move focus.
-        if len(active_split):
-            new_active_window = active_split[max(0, index - 1)]
-            while isinstance(new_active_window, (HSplit, VSplit)):
-                new_active_window = new_active_window[0]
-            self.active_window = new_active_window
-        else:
-            self.active_window = None  # No windows left.
-
-        # When there is exactly on item left, move this back into the parent
-        # split. (We don't want to keep a split with one item around -- exept
-        # for the root.)
-        if len(active_split) == 1 and active_split != self.root:
-            parent = self._get_split_parent(active_split)
-            index = parent.index(active_split)
-            parent[index] = active_split[0]
-
-    def cycle_focus(self):
-        """
-        Cycle through all windows.
-        """
-        windows = self.windows()
-        new_index = (windows.index(self.active_window) + 1) % len(windows)
-        self.active_window = windows[new_index]
-
-    @property
-    def has_unsaved_changes(self):
-        """
-        True when any of the visible buffers in this tab has unsaved changes.
-        """
-        for w in self.windows():
-            if w.editor_buffer.has_unsaved_changes:
-                return True
-        return False
-
-
 class WindowArrangement(object):
     def __init__(self, editor):
         self._editor_ref = weakref.ref(editor)
-
-        self.tab_pages = []
-        self.active_tab_index = None
-        self.editor_buffers = []  # List of EditorBuffer
+        self.tab_pages: List[TabPage] = []
+        self.active_tab_index: Optional[int] = None
+        self.editor_buffers: List[EditorBuffer] = []
 
     @property
     def editor(self):
@@ -223,19 +30,19 @@ class WindowArrangement(object):
         return self._editor_ref()
 
     @property
-    def active_tab(self):
+    def active_tab(self) -> Optional[TabPage]:
         """ The active TabPage or None. """
         if self.active_tab_index is not None:
             return self.tab_pages[self.active_tab_index]
 
     @property
-    def active_editor_buffer(self):
+    def active_editor_buffer(self) -> Optional[EditorBuffer]:
         """ The active EditorBuffer or None. """
         if self.active_tab and self.active_tab.active_window:
             return self.active_tab.active_window.editor_buffer
 
     @property
-    def active_pt_window(self):
+    def active_pt_window(self) -> Optional[prompt_toolkit.layout.containers.Window]:
         " The active prompt_toolkit layout Window. "
         if self.active_tab:
             w = self.active_tab.active_window
@@ -285,7 +92,8 @@ class WindowArrangement(object):
         assert location is None or text is None or new is False  # Don't pass two of them.
 
         if location or text or new:
-            editor_buffer = self._get_or_create_editor_buffer(location=location, text=text)
+            editor_buffer = self._get_or_create_editor_buffer(
+                location=location, text=text)
         else:
             editor_buffer = None
         self.active_tab.hsplit(editor_buffer)
@@ -295,7 +103,8 @@ class WindowArrangement(object):
         assert location is None or text is None or new is False  # Don't pass two of them.
 
         if location or text or new:
-            editor_buffer = self._get_or_create_editor_buffer(location=location, text=text)
+            editor_buffer = self._get_or_create_editor_buffer(
+                location=location, text=text)
         else:
             editor_buffer = None
         self.active_tab.vsplit(editor_buffer)
@@ -330,7 +139,8 @@ class WindowArrangement(object):
 
             # Get index of new buffer.
             if _previous:
-                new_index = (len(self.editor_buffers) + index - 1) % len(self.editor_buffers)
+                new_index = (len(self.editor_buffers) + index -
+                             1) % len(self.editor_buffers)
             else:
                 new_index = (index + 1) % len(self.editor_buffers)
 
@@ -350,7 +160,8 @@ class WindowArrangement(object):
         """
         Focus the next tab.
         """
-        self.active_tab_index = (self.active_tab_index + 1) % len(self.tab_pages)
+        self.active_tab_index = (
+            self.active_tab_index + 1) % len(self.tab_pages)
 
     def go_to_previous_tab(self):
         """
@@ -376,7 +187,8 @@ class WindowArrangement(object):
         Insert this new buffer in the list of buffers, right after the active
         one.
         """
-        assert isinstance(editor_buffer, EditorBuffer) and editor_buffer not in self.editor_buffers
+        assert isinstance(
+            editor_buffer, EditorBuffer) and editor_buffer not in self.editor_buffers
 
         # Add to list of EditorBuffers
         eb = self.active_editor_buffer
@@ -392,6 +204,7 @@ class WindowArrangement(object):
 
         # When there are no tabs/windows yet, create one for this buffer.
         if self.tab_pages == []:
+            from .tab_page import TabPage, Window
             self.tab_pages.append(TabPage(Window(editor_buffer)))
             self.active_tab_index = 0
 
@@ -494,7 +307,8 @@ class WindowArrangement(object):
 
             if len(self.editor_buffers) > 0:
                 # Open the previous buffer.
-                new_index = (len(self.editor_buffers) + index - 1) % len(self.editor_buffers)
+                new_index = (len(self.editor_buffers) + index -
+                             1) % len(self.editor_buffers)
                 eb = self.editor_buffers[new_index]
 
                 # Create a window for this buffer.
@@ -530,15 +344,3 @@ class WindowArrangement(object):
                 is_visible=(eb in visible_ebs))
 
         return [make_info(i, eb) for i, eb in enumerate(self.editor_buffers)]
-
-
-class OpenBufferInfo(object):
-    """
-    Information about an open buffer, returned by
-    `WindowArrangement.list_open_buffers`.
-    """
-    def __init__(self, index, editor_buffer, is_active, is_visible):
-        self.index = index
-        self.editor_buffer = editor_buffer
-        self.is_active = is_active
-        self.is_visible = is_visible
