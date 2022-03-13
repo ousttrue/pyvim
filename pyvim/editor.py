@@ -17,6 +17,7 @@ import prompt_toolkit.key_binding.vi_state
 import prompt_toolkit.styles
 import prompt_toolkit.input
 import prompt_toolkit.output
+import prompt_toolkit.layout
 
 from .commands.completer import create_command_completer
 from .commands.handler import handle_command
@@ -176,7 +177,7 @@ class Editor(object):
             input=self.input,
             output=self.output,
             editing_mode=prompt_toolkit.enums.EditingMode.VI,
-            layout=self.editor_layout.layout,
+            layout=prompt_toolkit.layout.Layout(self.editor_layout),
             key_bindings=self.key_bindings,
             style=prompt_toolkit.styles.DynamicStyle(
                 lambda: self.current_style),

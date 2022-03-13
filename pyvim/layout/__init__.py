@@ -95,7 +95,7 @@ class EditorLayout(object):
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
-        self.layout = Layout(FloatContainer(
+        self.container = FloatContainer(
             content=HSplit([
                 TabsToolbar(editor),
                 self._fc,
@@ -108,7 +108,10 @@ class EditorLayout(object):
                 Float(right=0, height=1, bottom=0, width=5,
                       content=SimpleArgToolbar()),
             ]
-        ))
+        )
+
+    def __pt_container__(self):
+        return self.container
 
     def get_vertical_border_char(self):
         " Return the character to be used for the vertical border. "
