@@ -95,7 +95,7 @@ class EditorLayout(object):
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
-        self.container = FloatContainer(
+        root = FloatContainer(
             content=HSplit([
                 TabsToolbar(editor),
                 self._fc,
@@ -108,6 +108,25 @@ class EditorLayout(object):
                 Float(right=0, height=1, bottom=0, width=5,
                       content=SimpleArgToolbar()),
             ]
+        )
+
+        # background color
+        self.container = FloatContainer(
+            content=Window(
+                char=' ',
+                ignore_content_width=True,
+                ignore_content_height=True,
+            ),
+            floats=[
+                Float(
+                    root,
+                    transparent=True,
+                    left=0,
+                    right=0,
+                    top=0,
+                    bottom=0
+                ),
+            ],
         )
 
     def __pt_container__(self):

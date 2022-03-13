@@ -20,12 +20,20 @@ def get_editor_style_by_name(name):
     """
     if name == 'vim':
         vim_style = Style.from_dict(default_vim_style)
+        bg_style = {
+
+        }
     else:
-        vim_style = style_from_pygments_cls(get_style_by_name(name))
+        pygment_style = get_style_by_name(name)
+        vim_style = style_from_pygments_cls(pygment_style)
+        bg_style = {
+            '': f'bg:{pygment_style.background_color}',
+        }
 
     return merge_styles([
         vim_style,
         Style.from_dict(style_extensions),
+        Style.from_dict(bg_style),
     ])
 
 
@@ -54,7 +62,7 @@ style_extensions = {
     'commandline.location':   'bg:#bbbbff #000000',
 
     # Frame borders (for between vertical splits.)
-    'frameborder':            'bold', #bg:#88aa88 #ffffff',
+    'frameborder':            'bold',  # bg:#88aa88 #ffffff',
 
     # Messages
     'message':                'bg:#bbee88 #222222',

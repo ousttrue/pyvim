@@ -145,7 +145,9 @@ class Editor(object):
             mouse_support=prompt_toolkit.filters.Condition(
                 lambda: self.enable_mouse_support),
             full_screen=True,
-            enable_page_navigation_bindings=True)
+            enable_page_navigation_bindings=True,
+            color_depth=prompt_toolkit.output.color_depth.ColorDepth.DEPTH_8_BIT,
+        )
 
         # Handle command line previews.
         # (e.g. when typing ':colorscheme blue', it should already show the
