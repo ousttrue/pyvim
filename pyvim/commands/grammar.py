@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 
 from prompt_toolkit.contrib.regular_languages.compiler import compile
 

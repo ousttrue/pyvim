@@ -1,7 +1,6 @@
 """
 The actual layout for the renderer.
 """
-from __future__ import unicode_literals
 from prompt_toolkit.application.current import get_app
 import prompt_toolkit.filters
 
