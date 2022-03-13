@@ -29,7 +29,7 @@ from .style import generate_built_in_styles, get_editor_style_by_name
 from .window_arrangement import WindowArrangement
 from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
 
-import pygments
+import pygments.util
 import os
 
 __all__ = (
@@ -129,7 +129,31 @@ class Editor(object):
 
         # Create layout and CommandLineInterface instance.
         self.editor_layout = EditorLayout(self, self.window_arrangement)
-        self.application = self._create_application()
+        # Create Application.
+        self.application = prompt_toolkit.application.Application(
+            input=self.input,
+            output=self.output,
+            editing_mode=prompt_toolkit.enums.EditingMode.VI,
+            layout=prompt_toolkit.layout.Layout(self.editor_layout),
+            key_bindings=self.key_bindings,
+            style=prompt_toolkit.styles.DynamicStyle(
+                lambda: self.current_style),
+            paste_mode=prompt_toolkit.filters.Condition(
+                lambda: self.paste_mode),
+            #            ignore_case=Condition(lambda: self.ignore_case),  # TODO
+            include_default_pygments_style=False,
+            mouse_support=prompt_toolkit.filters.Condition(
+                lambda: self.enable_mouse_support),
+            full_screen=True,
+            enable_page_navigation_bindings=True)
+
+        # Handle command line previews.
+        # (e.g. when typing ':colorscheme blue', it should already show the
+        # preview before pressing enter.)
+        def preview(_):
+            if self.application.layout.has_focus(self.command_buffer):
+                self.previewer.preview(self.command_buffer.text)
+        self.command_buffer.on_text_changed += preview
 
         # Hide message when a key is pressed.
         def key_pressed(_):
@@ -167,38 +191,6 @@ class Editor(object):
 
         if locations and len(locations) > 1:
             self.show_message('%i files loaded.' % len(locations))
-
-    def _create_application(self):
-        """
-        Create CommandLineInterface instance.
-        """
-        # Create Application.
-        application = prompt_toolkit.application.Application(
-            input=self.input,
-            output=self.output,
-            editing_mode=prompt_toolkit.enums.EditingMode.VI,
-            layout=prompt_toolkit.layout.Layout(self.editor_layout),
-            key_bindings=self.key_bindings,
-            style=prompt_toolkit.styles.DynamicStyle(
-                lambda: self.current_style),
-            paste_mode=prompt_toolkit.filters.Condition(
-                lambda: self.paste_mode),
-            #            ignore_case=Condition(lambda: self.ignore_case),  # TODO
-            include_default_pygments_style=False,
-            mouse_support=prompt_toolkit.filters.Condition(
-                lambda: self.enable_mouse_support),
-            full_screen=True,
-            enable_page_navigation_bindings=True)
-
-        # Handle command line previews.
-        # (e.g. when typing ':colorscheme blue', it should already show the
-        # preview before pressing enter.)
-        def preview(_):
-            if self.application.layout.has_focus(self.command_buffer):
-                self.previewer.preview(self.command_buffer.text)
-        self.command_buffer.on_text_changed += preview
-
-        return application
 
     @property
     def current_editor_buffer(self):
