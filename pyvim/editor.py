@@ -18,6 +18,7 @@ import prompt_toolkit.styles
 import prompt_toolkit.input
 import prompt_toolkit.output
 import prompt_toolkit.layout
+import prompt_toolkit.cursor_shapes
 
 from .commands.completer import create_command_completer
 from .commands.handler import handle_command
@@ -147,6 +148,7 @@ class Editor(object):
             full_screen=True,
             enable_page_navigation_bindings=True,
             color_depth=prompt_toolkit.output.color_depth.ColorDepth.DEPTH_8_BIT,
+            cursor=prompt_toolkit.cursor_shapes.CursorShape.BLOCK,
         )
 
         # Handle command line previews.
