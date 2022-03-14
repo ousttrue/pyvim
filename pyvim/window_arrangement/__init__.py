@@ -7,7 +7,6 @@ represents the rendering, while this is more specific for the editor itself.
 """
 from typing import List, Optional
 from six import string_types
-import weakref
 from ..editor_buffer import EditorBuffer
 from .tab_page import TabPage, Window, VSplit, HSplit
 import prompt_toolkit.layout.containers

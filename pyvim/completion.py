@@ -1,8 +1,5 @@
 from prompt_toolkit.completion import Completer, Completion
-
 import re
-import weakref
-
 __all__ = (
     'DocumentCompleter',
 )
@@ -38,10 +35,13 @@ class DocumentCompleter(Completer):
 
     def __init__(self, editor_buffer):
         # (Weakrefs, they are already pointing to us.)
+        import weakref
         self._editor_buffer_ref = weakref.ref(editor_buffer)
 
     def get_completions(self, document, complete_event):
-        location = self._editor_buffer_ref().location or '.txt'
+        eb = self._editor_buffer_ref()
+        assert(eb)
+        location = eb.location or '.txt'
 
         # Select completer.
         from pyvim.editor import get_editor
@@ -67,7 +67,7 @@ class _PythonCompleter(Completer):
         script = self._get_jedi_script_from_document(document)
         if script:
             try:
-                completions = script.completions()
+                completions = script.completions()  # type: ignore
             except TypeError:
                 # Issue #9: bad syntax causes completions() to fail in jedi.
                 # https://github.com/jonathanslenders/python-prompt-toolkit/issues/9
