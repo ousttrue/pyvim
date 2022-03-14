@@ -50,12 +50,12 @@ class EditorRoot:
                                                                                                 scroll_offset=2,
                                                                                                 extra_filter=~prompt_toolkit.filters.has_focus(editor.command_buffer))),
                 prompt_toolkit.layout.Float(
-                    content=BufferListOverlay(editor), bottom=1, left=0),
+                    content=BufferListOverlay(), bottom=1, left=0),
                 prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
                                             content=prompt_toolkit.layout.ConditionalContainer(
                                                 prompt_toolkit.widgets.CompletionsToolbar(),
                                                 filter=prompt_toolkit.filters.has_focus(editor.command_buffer) &
-                                                ~_bufferlist_overlay_visible(editor) &
+                                                ~_bufferlist_overlay_visible() &
                                                 prompt_toolkit.filters.Condition(lambda: editor.show_wildmenu))),
                 prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
                                             content=prompt_toolkit.widgets.ValidationToolbar()),

@@ -5,7 +5,7 @@ import prompt_toolkit.filters
 from prompt_toolkit.application.current import get_app
 
 
-def _bufferlist_overlay_visible(editor):
+def _bufferlist_overlay_visible():
     """
     True when the buffer list overlay should be displayed.
     (This is when someone starts typing ':b' or ':buffer' in the command line.)
@@ -14,6 +14,8 @@ def _bufferlist_overlay_visible(editor):
     def overlay_is_visible():
         app = get_app()
 
+        from pyvim.editor import get_editor
+        editor = get_editor()
         text = editor.command_buffer.text.lstrip()
         return app.layout.has_focus(editor.command_buffer) and (
             any(text.startswith(p) for p in ['b ', 'b! ', 'buffer', 'buffer!']))
@@ -26,7 +28,7 @@ class BufferListOverlay(prompt_toolkit.layout.containers.ConditionalContainer):
     inside the vim command line.
     """
 
-    def __init__(self, editor):
+    def __init__(self):
         def highlight_location(location, search_string, default_token):
             """
             Return a tokenlist with the `search_string` highlighted.
@@ -45,6 +47,8 @@ class BufferListOverlay(prompt_toolkit.layout.containers.ConditionalContainer):
             return result
 
         def get_tokens():
+            from pyvim.editor import get_editor
+            editor = get_editor()
             wa = editor.window_arrangement
             buffer_infos = wa.list_open_buffers()
 
@@ -120,4 +124,4 @@ class BufferListOverlay(prompt_toolkit.layout.containers.ConditionalContainer):
             prompt_toolkit.layout.containers.Window(prompt_toolkit.layout.controls.FormattedTextControl(get_tokens),
                                                     style='class:bufferlist',
                                                     scroll_offsets=prompt_toolkit.layout.containers.ScrollOffsets(top=1, bottom=1)),
-            filter=_bufferlist_overlay_visible(editor))
+            filter=_bufferlist_overlay_visible())
