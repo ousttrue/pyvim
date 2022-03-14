@@ -41,7 +41,7 @@ class EditorRoot:
         from pyvim.editor import get_editor
         editor = get_editor()
 
-        from .command_line import CommandLine
+        from ...commands.command_line import CommandLine
         self.commandline = CommandLine(config_directory)
 
         self.container = prompt_toolkit.layout.FloatContainer(

@@ -22,7 +22,7 @@ import prompt_toolkit.input
 import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
-from .editor_layout.editor_window.command_line import CommandLine
+from .commands.command_line import CommandLine
 
 
 class _Editor(object):

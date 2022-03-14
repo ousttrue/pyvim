@@ -7,7 +7,7 @@ import prompt_toolkit.layout.processors
 import prompt_toolkit.buffer
 import prompt_toolkit.key_binding.vi_state
 import prompt_toolkit.history
-from ...commands.lexer import create_command_lexer
+from .lexer import create_command_lexer
 
 
 class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
@@ -26,12 +26,12 @@ class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
             self.leave_command_mode(append_to_history=True)
 
             # Execute command.
-            from ...commands.handler import handle_command
+            from .handler import handle_command
             handle_command(text)
 
             return False
 
-        from ...commands.completer import create_command_completer
+        from .completer import create_command_completer
         commands_history = prompt_toolkit.history.FileHistory(
             str(config_directory / 'commands_history'))
 
@@ -56,7 +56,7 @@ class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
             filter=prompt_toolkit.filters.has_focus(self.command_buffer))
 
         # Command line previewer.
-        from ...commands.preview import CommandPreviewer
+        from .preview import CommandPreviewer
         self.previewer = CommandPreviewer()
 
         # Handle command line previews.
