@@ -10,6 +10,8 @@
             "request": "launch",
             "module": "pyvim.entry_points.run_pyvim",
             "args": [
+                "-u",
+                "examples/config/pyvimrc",
                 "pyvim/editor.py",
             ],
             "cwd": "${workspaceFolder}",

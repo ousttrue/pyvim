@@ -42,7 +42,7 @@ def configure(editor):
     editor.enable_jedi = True
 
     # Apply colorscheme. (:colorscheme emacs)
-    editor.use_colorscheme('emacs')
+    editor.use_colorscheme('material')
 
 
     # Add custom key bindings:
