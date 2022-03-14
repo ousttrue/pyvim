@@ -3,16 +3,10 @@ The actual layout for the renderer.
 """
 from prompt_toolkit.application.current import get_app
 import prompt_toolkit.filters
-
-from prompt_toolkit.layout import HSplit, VSplit, FloatContainer, Float, Layout
-from prompt_toolkit.layout.containers import Window, ConditionalContainer, ColorColumn, ScrollOffsets
-from prompt_toolkit.layout.controls import BufferControl
-from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
-from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import ConditionalProcessor, ShowTrailingWhiteSpaceProcessor, HighlightSelectionProcessor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, HighlightMatchingBracketProcessor, TabsProcessor, DisplayMultipleCursors
-from prompt_toolkit.widgets.toolbars import SystemToolbar, SearchToolbar, ValidationToolbar, CompletionsToolbar
-
+import prompt_toolkit.layout
+import prompt_toolkit.widgets
+import prompt_toolkit.layout.menus
+import prompt_toolkit.layout.processors
 from ..lexer import DocumentLexer
 
 import pyvim.window_arrangement as window_arrangement
@@ -60,33 +54,35 @@ class EditorLayout(object):
         from .buffer_list import BufferListOverlay, _bufferlist_overlay_visible
         from .message_toolbar import MessageToolbarBar
 
-        self._fc = FloatContainer(
-            content=VSplit([
-                Window(BufferControl())  # Dummy window
+        self._fc = prompt_toolkit.layout.FloatContainer(
+            content=prompt_toolkit.layout.VSplit([
+                prompt_toolkit.layout.Window(
+                    prompt_toolkit.layout.BufferControl())  # Dummy window
             ]),
             floats=[
-                Float(xcursor=True, ycursor=True,
-                      content=CompletionsMenu(max_height=12,
-                                              scroll_offset=2,
-                                              extra_filter=~prompt_toolkit.filters.has_focus(editor.command_buffer))),
-                Float(content=BufferListOverlay(editor), bottom=1, left=0),
-                Float(bottom=1, left=0, right=0, height=1,
-                      content=ConditionalContainer(
-                          CompletionsToolbar(),
-                          filter=prompt_toolkit.filters.has_focus(editor.command_buffer) &
-                          ~_bufferlist_overlay_visible(editor) &
-                          prompt_toolkit.filters.Condition(lambda: editor.show_wildmenu))),
-                Float(bottom=1, left=0, right=0, height=1,
-                      content=ValidationToolbar()),
-                Float(bottom=1, left=0, right=0, height=1,
-                      content=MessageToolbarBar(editor)),
-                Float(content=WelcomeMessageWindow(window_arrangement),
-                      height=WELCOME_MESSAGE_HEIGHT,
-                      width=WELCOME_MESSAGE_WIDTH),
+                prompt_toolkit.layout.Float(xcursor=True, ycursor=True,
+                                            content=prompt_toolkit.layout.menus.CompletionsMenu(max_height=12,
+                                                                                                scroll_offset=2,
+                                                                                                extra_filter=~prompt_toolkit.filters.has_focus(editor.command_buffer))),
+                prompt_toolkit.layout.Float(
+                    content=BufferListOverlay(editor), bottom=1, left=0),
+                prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
+                                            content=prompt_toolkit.layout.ConditionalContainer(
+                                                prompt_toolkit.widgets.CompletionsToolbar(),
+                                                filter=prompt_toolkit.filters.has_focus(editor.command_buffer) &
+                                                ~_bufferlist_overlay_visible(editor) &
+                                                prompt_toolkit.filters.Condition(lambda: editor.show_wildmenu))),
+                prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
+                                            content=prompt_toolkit.widgets.ValidationToolbar()),
+                prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
+                                            content=MessageToolbarBar(editor)),
+                prompt_toolkit.layout.Float(content=WelcomeMessageWindow(window_arrangement),
+                                            height=WELCOME_MESSAGE_HEIGHT,
+                                            width=WELCOME_MESSAGE_WIDTH),
             ]
         )
 
-        search_toolbar = SearchToolbar(
+        search_toolbar = prompt_toolkit.widgets.SearchToolbar(
             vi_mode=True, search_buffer=editor.search_buffer)
         self.search_control = search_toolbar.control
 
@@ -95,30 +91,30 @@ class EditorLayout(object):
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
-        root = FloatContainer(
-            content=HSplit([
+        root = prompt_toolkit.layout.FloatContainer(
+            content=prompt_toolkit.layout.HSplit([
                 TabsToolbar(editor),
                 self._fc,
                 CommandLine(editor),
                 ReportMessageToolbar(editor),
-                SystemToolbar(),
+                prompt_toolkit.widgets.SystemToolbar(),
                 search_toolbar,
             ]),
             floats=[
-                Float(right=0, height=1, bottom=0, width=5,
-                      content=SimpleArgToolbar()),
+                prompt_toolkit.layout.Float(right=0, height=1, bottom=0, width=5,
+                                            content=SimpleArgToolbar()),
             ]
         )
 
         # background color
-        self.container = FloatContainer(
-            content=Window(
+        self.container = prompt_toolkit.layout.FloatContainer(
+            content=prompt_toolkit.layout.Window(
                 char=' ',
                 ignore_content_width=True,
                 ignore_content_height=True,
             ),
             floats=[
-                Float(
+                prompt_toolkit.layout.Float(
                     root,
                     transparent=True,
                     left=0,
@@ -161,14 +157,14 @@ class EditorLayout(object):
                 return frame
 
             elif isinstance(node, window_arrangement.VSplit):
-                return VSplit(
+                return prompt_toolkit.layout.VSplit(
                     [create_layout_from_node(n) for n in node],
                     padding=1,
                     padding_char=self.get_vertical_border_char(),
                     padding_style='class:frameborder')
 
             if isinstance(node, window_arrangement.HSplit):
-                return HSplit([create_layout_from_node(n) for n in node])
+                return prompt_toolkit.layout.HSplit([create_layout_from_node(n) for n in node])
 
         layout = create_layout_from_node(
             self.window_arrangement.active_tab.root)
@@ -182,16 +178,16 @@ class EditorLayout(object):
         def wrap_lines():
             return self.editor.wrap_lines
 
-        window = Window(
+        window = prompt_toolkit.layout.Window(
             self._create_buffer_control(editor_buffer),
             allow_scroll_beyond_bottom=True,
-            scroll_offsets=ScrollOffsets(
+            scroll_offsets=prompt_toolkit.layout.ScrollOffsets(
                 left=0, right=0,
                 top=(lambda: self.editor.scroll_offset),
                 bottom=(lambda: self.editor.scroll_offset)),
             wrap_lines=wrap_lines,
-            left_margins=[ConditionalMargin(
-                margin=NumberedMargin(
+            left_margins=[prompt_toolkit.layout.ConditionalMargin(
+                margin=prompt_toolkit.layout.NumberedMargin(
                     display_tildes=True,
                     relative=prompt_toolkit.filters.Condition(lambda: self.editor.relative_number)),
                 filter=prompt_toolkit.filters.Condition(lambda: self.editor.show_line_numbers))],
@@ -200,7 +196,7 @@ class EditorLayout(object):
             cursorcolumn=prompt_toolkit.filters.Condition(
                 lambda: self.editor.cursorcolumn),
             colorcolumns=(
-                lambda: [ColorColumn(pos) for pos in self.editor.colorcolumn]),
+                lambda: [prompt_toolkit.layout.ColorColumn(pos) for pos in self.editor.colorcolumn]),
             ignore_content_width=True,
             ignore_content_height=True,
             get_line_prefix=partial(self._get_line_prefix, editor_buffer.buffer))
@@ -208,13 +204,13 @@ class EditorLayout(object):
         from .window_statusbar import WindowStatusBar
         from .window_statusbar_ruler import WindowStatusBarRuler
 
-        return HSplit([
+        return prompt_toolkit.layout.HSplit([
             window,
-            VSplit([
+            prompt_toolkit.layout.VSplit([
                 WindowStatusBar(self.editor, editor_buffer),
                 WindowStatusBarRuler(self.editor, window,
                                      editor_buffer.buffer),
-            ], width=Dimension()),  # Ignore actual status bar width.
+            ], width=prompt_toolkit.layout.Dimension()),  # Ignore actual status bar width.
         ]), window
 
     def _create_buffer_control(self, editor_buffer):
@@ -230,12 +226,12 @@ class EditorLayout(object):
             # Processor for visualising spaces. (should come before the
             # selection processor, otherwise, we won't see these spaces
             # selected.)
-            ConditionalProcessor(
-                ShowTrailingWhiteSpaceProcessor(),
+            prompt_toolkit.layout.processors.ConditionalProcessor(
+                prompt_toolkit.layout.processors.ShowTrailingWhiteSpaceProcessor(),
                 prompt_toolkit.filters.Condition(lambda: self.editor.display_unprintable_characters)),
 
             # Replace tabs by spaces.
-            TabsProcessor(
+            prompt_toolkit.layout.processors.TabsProcessor(
                 tabstop=(lambda: self.editor.tabstop),
                 char1=(
                     lambda: '|' if self.editor.display_unprintable_characters else ' '),
@@ -245,18 +241,18 @@ class EditorLayout(object):
 
             # Reporting of errors, for Pyflakes.
             ReportingProcessor(editor_buffer),
-            HighlightSelectionProcessor(),
-            ConditionalProcessor(
-                HighlightSearchProcessor(),
+            prompt_toolkit.layout.processors.HighlightSelectionProcessor(),
+            prompt_toolkit.layout.processors.ConditionalProcessor(
+                prompt_toolkit.layout.processors.HighlightSearchProcessor(),
                 prompt_toolkit.filters.Condition(lambda: self.editor.highlight_search)),
-            ConditionalProcessor(
-                HighlightIncrementalSearchProcessor(),
+            prompt_toolkit.layout.processors.ConditionalProcessor(
+                prompt_toolkit.layout.processors.HighlightIncrementalSearchProcessor(),
                 prompt_toolkit.filters.Condition(lambda: self.editor.highlight_search) & preview_search),
-            HighlightMatchingBracketProcessor(),
-            DisplayMultipleCursors(),
+            prompt_toolkit.layout.processors.HighlightMatchingBracketProcessor(),
+            prompt_toolkit.layout.processors.DisplayMultipleCursors(),
         ]
 
-        return BufferControl(
+        return prompt_toolkit.layout.BufferControl(
             lexer=DocumentLexer(editor_buffer),
             include_default_input_processors=False,
             input_processors=input_processors,
