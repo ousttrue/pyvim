@@ -53,8 +53,6 @@ class _Editor(object):
         self.cursorcolumn = False  # ':set cursorcolumn'
         self.colorcolumn = []  # ':set colorcolumn'. List of integers.
 
-        from .window_arrangement import WindowArrangement
-        self.window_arrangement = WindowArrangement()
         self.message = None
 
         # Load styles. (Mapping from name to Style class.)
@@ -116,7 +114,7 @@ class _Editor(object):
     def layout(self):
         # Create layout and CommandLineInterface instance.
         from .editor_layout import EditorLayout
-        self.editor_layout = EditorLayout(self, self.window_arrangement)
+        self.editor_layout = EditorLayout(self)
         # Create Application.
         self.application = prompt_toolkit.application.Application(
             input=self.input,
@@ -167,19 +165,19 @@ class _Editor(object):
         locations2 = locations or [None]
 
         # First file
-        self.window_arrangement.open_buffer(locations2[0])
+        self.editor_layout.window_arrangement.open_buffer(locations2[0])
 
         for f in locations2[1:]:
             if in_tab_pages:
-                self.window_arrangement.create_tab(f)
+                self.editor_layout.window_arrangement.create_tab(f)
             elif hsplit:
-                self.window_arrangement.hsplit(location=f)
+                self.editor_layout.window_arrangement.hsplit(location=f)
             elif vsplit:
-                self.window_arrangement.vsplit(location=f)
+                self.editor_layout.window_arrangement.vsplit(location=f)
             else:
-                self.window_arrangement.open_buffer(f)
+                self.editor_layout.window_arrangement.open_buffer(f)
 
-        self.window_arrangement.active_tab_index = 0
+        self.editor_layout.window_arrangement.active_tab_index = 0
 
         if locations and len(locations) > 1:
             self.show_message('%i files loaded.' % len(locations))
@@ -192,7 +190,7 @@ class _Editor(object):
         current_buffer = self.application.current_buffer
 
         # Find/return the EditorBuffer with this name.
-        for b in self.window_arrangement.editor_buffers:
+        for b in self.editor_layout.window_arrangement.editor_buffers:
             if b.buffer == current_buffer:
                 return b
 
@@ -232,7 +230,7 @@ class _Editor(object):
 
         # Make sure that the focus stack of prompt-toolkit has the current
         # page.
-        window = self.window_arrangement.active_pt_window
+        window = self.editor_layout.window_arrangement.active_pt_window
         if window:
             self.application.layout.focus(window)
 
@@ -241,7 +239,7 @@ class _Editor(object):
         Show help in new window.
         """
         from .help import HELP_TEXT
-        self.window_arrangement.hsplit(text=HELP_TEXT)
+        self.editor_layout.window_arrangement.hsplit(text=HELP_TEXT)
         self.sync_with_prompt_toolkit()  # Show new window.
 
     def run(self):

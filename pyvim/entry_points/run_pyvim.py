@@ -42,9 +42,9 @@ def run():
             run_rc_file(default_pyvimrc)
 
     # Load files and run.
+    editor.layout()
     editor.load_initial_files(locations, in_tab_pages=in_tab_pages,
                               hsplit=hsplit, vsplit=vsplit)
-    editor.layout()
     editor.run()
 
 

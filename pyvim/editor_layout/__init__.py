@@ -19,12 +19,13 @@ class EditorLayout(object):
     The main layout class.
     """
 
-    def __init__(self, editor, window_arrangement: window_arrangement.WindowArrangement):
+    def __init__(self, editor):
         self.editor = editor  # Back reference to editor.
-        self.window_arrangement = window_arrangement
+        from ..window_arrangement import WindowArrangement
+        self.window_arrangement = WindowArrangement()
 
         from .editor_root import EditorRoot
-        self.editor_root = EditorRoot(window_arrangement)
+        self.editor_root = EditorRoot(self.window_arrangement)
 
         from .tabs_control import TabsToolbar
         from .command_line import CommandLine
@@ -33,7 +34,7 @@ class EditorLayout(object):
 
         root = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
-                TabsToolbar(window_arrangement),
+                TabsToolbar(self.window_arrangement),
                 self.editor_root,
                 CommandLine(editor),
                 ReportMessageToolbar(editor),
