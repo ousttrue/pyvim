@@ -44,6 +44,7 @@ def run():
     # Load files and run.
     editor.load_initial_files(locations, in_tab_pages=in_tab_pages,
                               hsplit=hsplit, vsplit=vsplit)
+    editor.layout()
     editor.run()
 
 

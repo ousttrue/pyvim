@@ -21,15 +21,6 @@ import prompt_toolkit.input
 import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
-from .commands.completer import create_command_completer
-from .commands.handler import handle_command
-from .commands.preview import CommandPreviewer
-from .help import HELP_TEXT
-from .key_bindings import create_key_bindings
-from .editor_layout import EditorLayout
-from .style import generate_built_in_styles, get_editor_style_by_name
-from .window_arrangement import WindowArrangement
-from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
 
 
 class _Editor(object):
@@ -62,14 +53,17 @@ class _Editor(object):
         self.cursorcolumn = False  # ':set cursorcolumn'
         self.colorcolumn = []  # ':set colorcolumn'. List of integers.
 
+        from .window_arrangement import WindowArrangement
         self.window_arrangement = WindowArrangement()
         self.message = None
 
         # Load styles. (Mapping from name to Style class.)
+        from .style import generate_built_in_styles, get_editor_style_by_name
         self.styles = generate_built_in_styles()
         self.current_style = get_editor_style_by_name('vim')
 
         # I/O backends.
+        from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
         self.io_backends = [
             DirectoryIO(),
             HttpIO(),
@@ -87,6 +81,7 @@ class _Editor(object):
             self.leave_command_mode(append_to_history=True)
 
             # Execute command.
+            from .commands.handler import handle_command
             handle_command(self, text)
 
             return False
@@ -97,6 +92,7 @@ class _Editor(object):
         if not self.config_directory.exists():
             self.config_directory.mkdir(parents=True)
 
+        from .commands.completer import create_command_completer
         commands_history = prompt_toolkit.history.FileHistory(
             str(self.config_directory / 'commands_history'))
         self.command_buffer = prompt_toolkit.buffer.Buffer(
@@ -114,9 +110,12 @@ class _Editor(object):
             multiline=False)
 
         # Create key bindings registry.
+        from .key_bindings import create_key_bindings
         self.key_bindings = create_key_bindings(self)
 
+    def layout(self):
         # Create layout and CommandLineInterface instance.
+        from .editor_layout import EditorLayout
         self.editor_layout = EditorLayout(self, self.window_arrangement)
         # Create Application.
         self.application = prompt_toolkit.application.Application(
@@ -153,6 +152,7 @@ class _Editor(object):
         self.application.key_processor.before_key_press += key_pressed
 
         # Command line previewer.
+        from .commands.preview import CommandPreviewer
         self.previewer = CommandPreviewer(self)
 
         self.last_substitute_text = ''
@@ -217,6 +217,7 @@ class _Editor(object):
         Apply new colorscheme. (By name.)
         """
         try:
+            from .style import get_editor_style_by_name
             self.current_style = get_editor_style_by_name(name)
         except pygments.util.ClassNotFound:
             pass
@@ -239,6 +240,7 @@ class _Editor(object):
         """
         Show help in new window.
         """
+        from .help import HELP_TEXT
         self.window_arrangement.hsplit(text=HELP_TEXT)
         self.sync_with_prompt_toolkit()  # Show new window.
 

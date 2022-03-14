@@ -24,7 +24,7 @@ class EditorLayout(object):
         self.window_arrangement = window_arrangement
 
         from .editor_root import EditorRoot
-        self.editor_root = EditorRoot(editor, window_arrangement)
+        self.editor_root = EditorRoot(window_arrangement)
 
         from .tabs_control import TabsToolbar
         from .command_line import CommandLine
