@@ -12,7 +12,7 @@ Options:
 """
 import docopt
 import os
-
+import logging
 from pyvim.rc_file import run_rc_file
 
 __all__ = (
@@ -21,6 +21,7 @@ __all__ = (
 
 
 def run():
+    logging.basicConfig(level=logging.DEBUG)
     a = docopt.docopt(__doc__)  # type: ignore
     locations = a['<location>']
     in_tab_pages = a['-p']

@@ -26,7 +26,7 @@ class EditorLayout(object):
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
-        root = prompt_toolkit.layout.FloatContainer(
+        editor_layout = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
                 tabbar,
                 self.editor_root,
@@ -41,6 +41,14 @@ class EditorLayout(object):
             ]
         )
 
+        from .logger import LoggerWindow
+        logger_window = LoggerWindow()
+
+        editor_logger = prompt_toolkit.layout.HSplit([
+            editor_layout,
+            logger_window,
+        ])
+
         # background color
         self.container = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.Window(
@@ -50,7 +58,7 @@ class EditorLayout(object):
             ),
             floats=[
                 prompt_toolkit.layout.Float(
-                    root,
+                    editor_logger,
                     transparent=True,
                     left=0,
                     right=0,

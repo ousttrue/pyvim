@@ -1,9 +1,11 @@
 from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.document import Document
-
+import logging
 import os
 import re
 import six
+
+logger = logging.getLogger(__name__)
 
 __all__ = (
     'has_command_handler',
@@ -29,6 +31,7 @@ def call_command_handler(command, editor, variables):
     """
     Execute command.
     """
+    logging.debug(command)
     COMMANDS_TO_HANDLERS[command](editor, variables)
 
 
@@ -276,7 +279,8 @@ def buffer_edit(editor, location, force=False):
             eb.reload()
     else:
         editor.file_explorer = ''
-        editor.window_arrangement.open_buffer(location, show_in_current_window=True)
+        editor.window_arrangement.open_buffer(
+            location, show_in_current_window=True)
 
 
 @cmd('q', accepts_force=True)
@@ -674,17 +678,20 @@ def enable_cursorline(editor):
     " Highlight the line that contains the cursor. "
     editor.cursorline = True
 
+
 @set_cmd('nocursorline')
 @set_cmd('nocul')
 def disable_cursorline(editor):
     " No cursorline. "
     editor.cursorline = False
 
+
 @set_cmd('cursorcolumn')
 @set_cmd('cuc')
 def enable_cursorcolumn(editor):
     " Highlight the column that contains the cursor. "
     editor.cursorcolumn = True
+
 
 @set_cmd('nocursorcolumn')
 @set_cmd('nocuc')
@@ -735,7 +742,8 @@ def substitute(editor, range_start, range_end, search, replace, flags):
     if replace is None:
         replace = editor.last_substitute_text
 
-    line_index_iterator = get_line_index_iterator(cursor_position_row, range_start, range_end)
+    line_index_iterator = get_line_index_iterator(
+        cursor_position_row, range_start, range_end)
     transform_callback = get_transform_callback(search, replace, flags)
     new_text = buffer.transform_lines(line_index_iterator, transform_callback)
 
@@ -745,9 +753,11 @@ def substitute(editor, range_start, range_end, search, replace, flags):
     # update text buffer
     buffer.document = Document(
         new_text,
-        Document(new_text).translate_row_col_to_index(new_cursor_position_row, 0),
+        Document(new_text).translate_row_col_to_index(
+            new_cursor_position_row, 0),
     )
-    buffer.cursor_position += buffer.document.get_start_of_line_position(after_whitespace=True)
+    buffer.cursor_position += buffer.document.get_start_of_line_position(
+        after_whitespace=True)
     buffer._search(search_state, include_current_position=True)
 
     # update editor state
