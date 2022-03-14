@@ -33,7 +33,7 @@ class EditorLayout(object):
 
         root = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
-                TabsToolbar(editor),
+                TabsToolbar(window_arrangement),
                 self.editor_root,
                 CommandLine(editor),
                 ReportMessageToolbar(editor),

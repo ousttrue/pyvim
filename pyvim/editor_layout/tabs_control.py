@@ -10,7 +10,7 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
     open tab.
     """
 
-    def __init__(self, editor):
+    def __init__(self):
         def location_for_tab(tab):
             return tab.active_window.editor_buffer.get_display_name(short=True)
 
@@ -18,6 +18,8 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
             " Return a mouse handler for this tab. Select the tab on click. "
             def handler(app, mouse_event):
                 if mouse_event.event_type == prompt_toolkit.mouse_events.MouseEventType.MOUSE_DOWN:
+                    from pyvim.editor import get_editor
+                    editor = get_editor()
                     editor.window_arrangement.active_tab_index = index
                     editor.sync_with_prompt_toolkit()
                 else:
@@ -25,6 +27,8 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
             return handler
 
         def get_tokens():
+            from pyvim.editor import get_editor
+            editor = get_editor()
             selected_tab_index = editor.window_arrangement.active_tab_index
 
             result = []
@@ -50,8 +54,8 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
 
 
 class TabsToolbar(prompt_toolkit.layout.containers.ConditionalContainer):
-    def __init__(self, editor):
+    def __init__(self, window_arrangement):
         super(TabsToolbar, self).__init__(
             prompt_toolkit.layout.containers.Window(
-                TabsControl(editor), height=1),
-            filter=prompt_toolkit.filters.Condition(lambda: len(editor.window_arrangement.tab_pages) > 1))
+                TabsControl(), height=1),
+            filter=prompt_toolkit.filters.Condition(lambda: len(window_arrangement.tab_pages) > 1))
