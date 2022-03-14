@@ -285,7 +285,7 @@ def quit(editor, all_=False, force=False):
     """
     Quit.
     """
-    ebs = editor.editor_layout.window_arrangement.editor_buffers
+    ebs = editor.editor_layout.editor_root.window_arrangement.editor_buffers
 
     # When there are buffers that have unsaved changes, show balloon.
     if not force and any(eb.has_unsaved_changes for eb in ebs):

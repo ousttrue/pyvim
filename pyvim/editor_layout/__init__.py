@@ -6,7 +6,6 @@ import prompt_toolkit.layout
 import prompt_toolkit.widgets
 import prompt_toolkit.layout.menus
 import prompt_toolkit.layout.processors
-import pyvim.window_arrangement as window_arrangement
 
 
 __all__ = (
@@ -20,11 +19,8 @@ class EditorLayout(object):
     """
 
     def __init__(self):
-        from ..window_arrangement import WindowArrangement
-        self.window_arrangement = WindowArrangement()
-
-        from .editor_root import EditorRoot
-        self.editor_root = EditorRoot(self.window_arrangement)
+        from .window_arrangement.editor_root import EditorRoot
+        self.editor_root = EditorRoot()
 
         from .tabs_control import TabsToolbar
         from .command_line import CommandLine
@@ -33,7 +29,7 @@ class EditorLayout(object):
 
         root = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
-                TabsToolbar(self.window_arrangement),
+                TabsToolbar(self.editor_root.window_arrangement),
                 self.editor_root,
                 CommandLine(),
                 ReportMessageToolbar(),

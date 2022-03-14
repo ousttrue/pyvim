@@ -22,7 +22,7 @@ TABSTOP_DOT = _try_char('\u2508', '.')
 
 
 class EditorRoot:
-    def __init__(self, window_arrangement) -> None:
+    def __init__(self) -> None:
         # Mapping from (`window_arrangement.Window`, `EditorBuffer`) to a frame
         # (Layout instance).
         # We keep this as a cache in order to easily reuse the same frames when
@@ -31,11 +31,12 @@ class EditorRoot:
         # vertical scroll offset.)
         self._frames = {}
 
-        self.window_arrangement = window_arrangement
+        from ..window_arrangement import WindowArrangement
+        self.window_arrangement = WindowArrangement()
 
-        from .welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
-        from .buffer_list import BufferListOverlay, _bufferlist_overlay_visible
-        from .message_toolbar import MessageToolbarBar
+        from ..welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
+        from ..buffer_list import BufferListOverlay, _bufferlist_overlay_visible
+        from ..message_toolbar import MessageToolbarBar
         from pyvim.editor import get_editor
         editor = get_editor()
 
@@ -61,7 +62,7 @@ class EditorRoot:
                                             content=prompt_toolkit.widgets.ValidationToolbar()),
                 prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
                                             content=MessageToolbarBar(editor)),
-                prompt_toolkit.layout.Float(content=WelcomeMessageWindow(window_arrangement),
+                prompt_toolkit.layout.Float(content=WelcomeMessageWindow(self.window_arrangement),
                                             height=WELCOME_MESSAGE_HEIGHT,
                                             width=WELCOME_MESSAGE_WIDTH),
             ]
@@ -120,11 +121,11 @@ class EditorRoot:
         """
         @prompt_toolkit.filters.Condition
         def wrap_lines():
-            from ..editor import get_editor
+            from ...editor import get_editor
             editor = get_editor()
             return editor.wrap_lines
 
-        from ..editor import get_editor
+        from ...editor import get_editor
         editor = get_editor()
         window = prompt_toolkit.layout.Window(
             self._create_buffer_control(editor_buffer),
@@ -149,8 +150,8 @@ class EditorRoot:
             ignore_content_height=True,
             get_line_prefix=partial(self._get_line_prefix, editor_buffer.buffer))
 
-        from .window_statusbar import WindowStatusBar
-        from .window_statusbar_ruler import WindowStatusBarRuler
+        from ..window_statusbar import WindowStatusBar
+        from ..window_statusbar_ruler import WindowStatusBarRuler
 
         return prompt_toolkit.layout.HSplit([
             window,
@@ -166,7 +167,7 @@ class EditorRoot:
             result = []
 
             # Add 'breakindent' prefix.
-            from ..editor import get_editor
+            from ...editor import get_editor
             editor = get_editor()
             if editor.break_indent:
                 line = buffer.document.lines[line_number]
@@ -188,14 +189,14 @@ class EditorRoot:
         """
         @prompt_toolkit.filters.Condition
         def preview_search():
-            from ..editor import get_editor
+            from ...editor import get_editor
             editor = get_editor()
             return editor.incsearch
 
-        from ..editor import get_editor
+        from ...editor import get_editor
         editor = get_editor()
 
-        from .reporting_processor import ReportingProcessor
+        from ..reporting_processor import ReportingProcessor
         input_processors = [
             # Processor for visualising spaces. (should come before the
             # selection processor, otherwise, we won't see these spaces
@@ -226,7 +227,7 @@ class EditorRoot:
             prompt_toolkit.layout.processors.DisplayMultipleCursors(),
         ]
 
-        from ..lexer import DocumentLexer
+        from ...lexer import DocumentLexer
         return prompt_toolkit.layout.BufferControl(
             lexer=DocumentLexer(editor_buffer),
             include_default_input_processors=False,

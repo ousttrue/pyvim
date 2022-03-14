@@ -14,7 +14,7 @@ class ReportMessageToolbar(prompt_toolkit.layout.containers.ConditionalContainer
         editor = get_editor()
 
         def get_formatted_text():
-            eb = editor.editor_layout.window_arrangement.active_editor_buffer
+            eb = editor.editor_layout.editor_root.window_arrangement.active_editor_buffer
 
             lineno = eb.buffer.document.cursor_position_row
             errors = eb.report_errors

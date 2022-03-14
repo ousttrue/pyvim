@@ -7,7 +7,7 @@ import prompt_toolkit
 import prompt_toolkit.layout.containers
 import prompt_toolkit.layout.controls
 import prompt_toolkit.filters
-from ..window_arrangement import WindowArrangement
+
 
 __all__ = (
     'WELCOME_MESSAGE_TOKENS',
@@ -49,7 +49,7 @@ class WelcomeMessageWindow(prompt_toolkit.layout.containers.ConditionalContainer
     were opened.
     """
 
-    def __init__(self, window_arrangement: WindowArrangement):
+    def __init__(self, window_arrangement):
         once_hidden = [False]  # Nonlocal
 
         def condition():
