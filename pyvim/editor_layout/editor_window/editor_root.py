@@ -31,7 +31,7 @@ class EditorRoot:
         # vertical scroll offset.)
         self._frames = {}
 
-        from ..window_arrangement import WindowArrangement
+        from .window_arrangement import WindowArrangement
         self.window_arrangement = WindowArrangement()
 
         from ..welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
@@ -84,7 +84,7 @@ class EditorRoot:
         existing_frames = self._frames
         self._frames = {}
 
-        from .. import window_arrangement
+        from . import window_arrangement
 
         def create_layout_from_node(node):
             if isinstance(node, window_arrangement.Window):

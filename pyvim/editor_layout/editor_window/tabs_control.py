@@ -10,7 +10,7 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
     open tab.
     """
 
-    def __init__(self):
+    def __init__(self, window_arrangement):
         def location_for_tab(tab):
             return tab.active_window.editor_buffer.get_display_name(short=True)
 
@@ -18,23 +18,21 @@ class TabsControl(prompt_toolkit.layout.controls.FormattedTextControl):
             " Return a mouse handler for this tab. Select the tab on click. "
             def handler(app, mouse_event):
                 if mouse_event.event_type == prompt_toolkit.mouse_events.MouseEventType.MOUSE_DOWN:
+                    window_arrangement.active_tab_index = index
                     from pyvim.editor import get_editor
                     editor = get_editor()
-                    editor.window_arrangement.active_tab_index = index
                     editor.sync_with_prompt_toolkit()
                 else:
                     return NotImplemented
             return handler
 
         def get_tokens():
-            from pyvim.editor import get_editor
-            editor = get_editor()
-            selected_tab_index = editor.window_arrangement.active_tab_index
+            selected_tab_index = window_arrangement.active_tab_index
 
             result = []
             append = result.append
 
-            for i, tab in enumerate(editor.window_arrangement.tab_pages):
+            for i, tab in enumerate(window_arrangement.tab_pages):
                 caption = location_for_tab(tab)
                 if tab.has_unsaved_changes:
                     caption = ' + ' + caption
@@ -57,5 +55,5 @@ class TabsToolbar(prompt_toolkit.layout.containers.ConditionalContainer):
     def __init__(self, window_arrangement):
         super(TabsToolbar, self).__init__(
             prompt_toolkit.layout.containers.Window(
-                TabsControl(), height=1),
+                TabsControl(window_arrangement), height=1),
             filter=prompt_toolkit.filters.Condition(lambda: len(window_arrangement.tab_pages) > 1))

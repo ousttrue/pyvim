@@ -19,17 +19,16 @@ class EditorLayout(object):
     """
 
     def __init__(self):
-        from .window_arrangement.editor_root import EditorRoot
-        self.editor_root = EditorRoot()
+        from .editor_window import create
+        self.editor_root, tabbar = create()
 
-        from .tabs_control import TabsToolbar
         from .command_line import CommandLine
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
         root = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
-                TabsToolbar(self.editor_root.window_arrangement),
+                tabbar,
                 self.editor_root,
                 CommandLine(),
                 ReportMessageToolbar(),
