@@ -12,15 +12,15 @@ __all__ = (
 )
 
 
-def create_command_completer(editor):
+def create_command_completer():
     commands = [c + ' ' for c in get_commands()]
 
     return GrammarCompleter(COMMAND_GRAMMAR, {
         'command': WordCompleter(commands),
         'location': PathCompleter(expanduser=True),
         'set_option': WordCompleter(sorted(SET_COMMANDS)),
-        'buffer_name': BufferNameCompleter(editor),
-        'colorscheme': ColorSchemeCompleter(editor),
+        'buffer_name': BufferNameCompleter(),
+        'colorscheme': ColorSchemeCompleter(),
         'shell_command': SystemCompleter(),
     })
 
@@ -31,13 +31,13 @@ class BufferNameCompleter(Completer):
     It is sufficient when the input appears anywhere in the buffer name, to
     trigger a completion.
     """
-    def __init__(self, editor):
-        self.editor = editor
 
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
 
-        for eb in self.editor.window_arrangement.editor_buffers:
+        from pyvim.editor import get_editor
+        editor = get_editor()
+        for eb in editor.window_arrangement.editor_buffers:
             location = eb.location
 
             if location is not None and text in location:
@@ -49,12 +49,12 @@ class ColorSchemeCompleter(Completer):
     Complete on the names of the color schemes that are currently known to the
     Editor instance.
     """
-    def __init__(self, editor):
-        self.editor = editor
 
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
 
-        for style_name in self.editor.styles:
+        from pyvim.editor import get_editor
+        editor = get_editor()
+        for style_name in editor.styles:
             if style_name.startswith(text):
                 yield Completion(style_name[len(text):], display=style_name)

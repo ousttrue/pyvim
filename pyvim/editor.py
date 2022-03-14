@@ -102,7 +102,7 @@ class _Editor(object):
         self.command_buffer = prompt_toolkit.buffer.Buffer(
             accept_handler=handle_action,
             enable_history_search=True,
-            completer=create_command_completer(self),
+            completer=create_command_completer(),
             history=commands_history,
             multiline=False)
 
