@@ -5,6 +5,11 @@ import prompt_toolkit.formatted_text
 from prompt_toolkit.application.current import get_app
 
 NL = ('', '\n')
+DEFAULT = '#AAAAAA bg:#000000'
+DEBUG = DEFAULT
+INFO = '#FFFFFF bg:#888888'
+WARN = '#FFFFFF bg:#996600'
+ERROR = '#FFFFFF bg:#990000'
 
 
 class LoggerWindow(logging.Handler):
@@ -14,7 +19,7 @@ class LoggerWindow(logging.Handler):
         self.control = prompt_toolkit.layout.FormattedTextControl(
             lambda: self.logs)
         self.container = prompt_toolkit.layout.Window(
-            self.control, height=8)
+            self.control, height=8, style=DEFAULT)
 
         # set root logger
         self.setFormatter(logging.Formatter(
@@ -30,13 +35,13 @@ class LoggerWindow(logging.Handler):
 
         match record.levelno:
             case logging.DEBUG:
-                self.logs.append(('#AAAAAA', '[DEBUG]'))
+                self.logs.append((DEFAULT, '[DEBUG]'))
             case logging.INFO:
-                self.logs.append(('#FFFFFF bg:#888888', '[INFO ]'))
+                self.logs.append((INFO, '[INFO ]'))
             case logging.WARN:
-                self.logs.append(('#FFFFFF bg:#996600', '[WARN ]'))
+                self.logs.append((WARN, '[WARN ]'))
             case logging.ERROR:
-                self.logs.append(('#FFFFFF bg:#990000', '[ERROR]'))
+                self.logs.append((ERROR, '[ERROR]'))
             case _:
                 raise NotImplementedError()
         self.logs.append(('', msg))
