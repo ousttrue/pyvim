@@ -62,7 +62,7 @@ class _Editor(object):
         self.cursorcolumn = False  # ':set cursorcolumn'
         self.colorcolumn = []  # ':set colorcolumn'. List of integers.
 
-        self.window_arrangement = WindowArrangement(self)
+        self.window_arrangement = WindowArrangement()
         self.message = None
 
         # Load styles. (Mapping from name to Style class.)

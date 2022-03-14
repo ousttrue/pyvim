@@ -18,16 +18,10 @@ __all__ = (
 
 
 class WindowArrangement(object):
-    def __init__(self, editor):
-        self._editor_ref = weakref.ref(editor)
+    def __init__(self):
         self.tab_pages: List[TabPage] = []
         self.active_tab_index: Optional[int] = None
         self.editor_buffers: List[EditorBuffer] = []
-
-    @property
-    def editor(self):
-        """ The Editor instance. """
-        return self._editor_ref()
 
     @property
     def active_tab(self) -> Optional[TabPage]:

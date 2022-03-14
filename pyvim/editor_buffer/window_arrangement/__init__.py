@@ -8,7 +8,7 @@ represents the rendering, while this is more specific for the editor itself.
 from typing import List, Optional
 from six import string_types
 import weakref
-from ..editor_buffer.editor_buffer import EditorBuffer
+from pyvim.editor_buffer import EditorBuffer
 from .tab_page import TabPage, Window, VSplit, HSplit
 import prompt_toolkit.layout.containers
 
@@ -18,16 +18,10 @@ __all__ = (
 
 
 class WindowArrangement(object):
-    def __init__(self, editor):
-        self._editor_ref = weakref.ref(editor)
+    def __init__(self):
         self.tab_pages: List[TabPage] = []
         self.active_tab_index: Optional[int] = None
         self.editor_buffers: List[EditorBuffer] = []
-
-    @property
-    def editor(self):
-        """ The Editor instance. """
-        return self._editor_ref()
 
     @property
     def active_tab(self) -> Optional[TabPage]:
@@ -227,7 +221,7 @@ class WindowArrangement(object):
 
         if location is None:
             # Create and add an empty EditorBuffer
-            eb = EditorBuffer(self.editor, text=text)
+            eb = EditorBuffer(text=text)
             self._add_editor_buffer(eb)
 
             return eb
@@ -239,7 +233,7 @@ class WindowArrangement(object):
             # Not found? Create one.
             if eb is None:
                 # Create and add EditorBuffer
-                eb = EditorBuffer(self.editor, location)
+                eb = EditorBuffer(location)
                 self._add_editor_buffer(eb)
 
                 return eb
