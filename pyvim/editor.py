@@ -239,7 +239,7 @@ class Editor(object):
         """
         # After executing a command, make sure that the layout of
         # prompt-toolkit matches our WindowArrangement.
-        self.editor_layout.update()
+        self.editor_layout.editor_root.update()
 
         # Make sure that the focus stack of prompt-toolkit has the current
         # page.
