@@ -9,7 +9,10 @@ class ReportMessageToolbar(prompt_toolkit.layout.containers.ConditionalContainer
     (It shows the error message, related to the current line.)
     """
 
-    def __init__(self, editor):
+    def __init__(self):
+        from pyvim.editor import get_editor
+        editor = get_editor()
+
         def get_formatted_text():
             eb = editor.editor_layout.window_arrangement.active_editor_buffer
 

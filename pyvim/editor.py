@@ -114,7 +114,7 @@ class _Editor(object):
     def layout(self):
         # Create layout and CommandLineInterface instance.
         from .editor_layout import EditorLayout
-        self.editor_layout = EditorLayout(self)
+        self.editor_layout = EditorLayout()
         # Create Application.
         self.application = prompt_toolkit.application.Application(
             input=self.input,

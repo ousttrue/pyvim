@@ -10,7 +10,9 @@ class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
     The editor command line. (For at the bottom of the screen.)
     """
 
-    def __init__(self, editor):
+    def __init__(self):
+        from pyvim.editor import get_editor
+        editor = get_editor()
         ui_control = prompt_toolkit.layout.controls.BufferControl(
             buffer=editor.command_buffer,
             input_processors=[
