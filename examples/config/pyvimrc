@@ -8,13 +8,14 @@ from prompt_toolkit.key_binding.key_processor import KeyPress
 from prompt_toolkit.keys import Keys
 from subprocess import call
 import six
+from pyvim.editor import _Editor
 
 __all__ = (
     'configure',
 )
 
 
-def configure(editor):
+def configure(editor: _Editor):
     """
     Configuration function. We receive a ``pyvim.editor.Editor`` instance as
     argument that we can manipulate in here.
@@ -44,7 +45,6 @@ def configure(editor):
     # Apply colorscheme. (:colorscheme emacs)
     editor.use_colorscheme('material')
 
-
     # Add custom key bindings:
 
     @editor.add_key_binding('j', 'j', filter=ViInsertMode())
@@ -66,7 +66,8 @@ def configure(editor):
 
         if editor_buffer is not None:
             if editor_buffer.location is None:
-                editor.show_message("File doesn't have a filename. Please save first.")
+                editor.show_message(
+                    "File doesn't have a filename. Please save first.")
                 return
             else:
                 editor_buffer.write()

@@ -239,7 +239,7 @@ class WindowArrangement(object):
             # Not found? Create one.
             if eb is None:
                 # Create and add EditorBuffer
-                eb = EditorBuffer(self.editor, location)
+                eb = EditorBuffer(location)
                 self._add_editor_buffer(eb)
 
                 return eb

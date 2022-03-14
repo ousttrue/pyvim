@@ -12,6 +12,7 @@ class DocumentWordsCompleter(Completer):
     """
     Completer that completes on words that appear already in the open document.
     """
+
     def get_completions(self, document, complete_event):
         word_before_cursor = document.get_word_before_cursor()
 
@@ -34,16 +35,17 @@ class DocumentCompleter(Completer):
     Depending on the file type and settings, it selects another completer to
     call.
     """
-    def __init__(self, editor, editor_buffer):
+
+    def __init__(self, editor_buffer):
         # (Weakrefs, they are already pointing to us.)
-        self._editor_ref = weakref.ref(editor)
         self._editor_buffer_ref = weakref.ref(editor_buffer)
 
     def get_completions(self, document, complete_event):
-        editor = self._editor_ref()
         location = self._editor_buffer_ref().location or '.txt'
 
         # Select completer.
+        from pyvim.editor import get_editor
+        editor = get_editor()
         if location.endswith('.py') and editor.enable_jedi:
             completer = _PythonCompleter(location)
         else:
@@ -57,6 +59,7 @@ class _PythonCompleter(Completer):
     """
     Wrapper around the Jedi completion engine.
     """
+
     def __init__(self, location):
         self.location = location
 
@@ -94,13 +97,13 @@ class _PythonCompleter(Completer):
 
     def _get_jedi_script_from_document(self, document):
         import jedi  # We keep this import in-line, to improve start-up time.
-                     # Importing Jedi is 'slow'.
+        # Importing Jedi is 'slow'.
 
         try:
             return jedi.Script(
                 document.text,
-                column=document.cursor_position_col,
-                line=document.cursor_position_row + 1,
+                # column=document.cursor_position_col,
+                # line=document.cursor_position_row + 1,
                 path=self.location)
         except ValueError:
             # Invalid cursor position.
@@ -116,4 +119,3 @@ class _PythonCompleter(Completer):
         except KeyError:
             # Workaroud for a crash when the input is "u'", the start of a unicode string.
             return None
-

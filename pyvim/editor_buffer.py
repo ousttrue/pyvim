@@ -2,21 +2,11 @@ from prompt_toolkit.application.current import get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
 from prompt_toolkit import __version__ as ptk_version
-
 from pyvim.completion import DocumentCompleter
 from pyvim.reporting import report
-
 from six import string_types
-
 import os
-import weakref
-
-PTK3 = ptk_version.startswith('3.')
-
-if PTK3:
-    from asyncio import get_event_loop
-else:
-    from prompt_toolkit.eventloop import call_from_executor, run_in_executor
+from asyncio import get_event_loop
 
 __all__ = (
     'EditorBuffer',
@@ -30,12 +20,12 @@ class EditorBuffer(object):
     A 'prompt-toolkit' `Buffer` doesn't know anything about files, changes,
     etc... This wrapper contains the necessary data for the editor.
     """
-    def __init__(self, editor, location=None, text=None):
+
+    def __init__(self, location=None, text=None):
         assert location is None or isinstance(location, string_types)
         assert text is None or isinstance(text, string_types)
         assert not (location and text)
 
-        self._editor_ref = weakref.ref(editor)
         self.location = location
         self.encoding = 'utf-8'
 
@@ -56,18 +46,13 @@ class EditorBuffer(object):
         # Create Buffer.
         self.buffer = Buffer(
             multiline=True,
-            completer=DocumentCompleter(editor, self),
+            completer=DocumentCompleter(self),
             document=Document(text, 0),
             on_text_changed=lambda _: self.run_reporter())
 
         # List of reporting errors.
         self.report_errors = []
         self._reporter_is_running = False
-
-    @property
-    def editor(self):
-        """ Back reference to the Editor. """
-        return self._editor_ref()
 
     @property
     def has_unsaved_changes(self):
@@ -87,7 +72,9 @@ class EditorBuffer(object):
         """
         Read file I/O backend.
         """
-        for io in self.editor.io_backends:
+        from pyvim.editor import get_editor
+        editor = get_editor()
+        for io in editor.io_backends:
             if io.can_open_location(location):
                 # Found an I/O backend.
                 exists = io.exists(location)
@@ -107,7 +94,8 @@ class EditorBuffer(object):
                         if text.endswith('\n'):
                             text = text[:-1]
                     except Exception as e:
-                        self.editor.show_message('Cannot read %r: %r' % (location, e))
+                        editor.show_message(
+                            'Cannot read %r: %r' % (location, e))
                         return ''
                     else:
                         return text
@@ -116,7 +104,7 @@ class EditorBuffer(object):
                     self.is_new = True
                     return ''
 
-        self.editor.show_message('Cannot read: %r' % location)
+        editor.show_message('Cannot read: %r' % location)
         return ''
 
     def reload(self):
@@ -139,11 +127,13 @@ class EditorBuffer(object):
         assert self.location
 
         # Find I/O backend that handles this location.
-        for io in self.editor.io_backends:
+        from pyvim.editor import get_editor
+        editor = get_editor()
+        for io in editor.io_backends:
             if io.can_open_location(self.location):
                 break
         else:
-            self.editor.show_message('Unknown location: %r' % location)
+            editor.show_message('Unknown location: %r' % location)
 
         # Write it.
         try:
@@ -151,7 +141,7 @@ class EditorBuffer(object):
             self.is_new = False
         except Exception as e:
             # E.g. "No such file or directory."
-            self.editor.show_message('%s' % e)
+            editor.show_message('%s' % e)
         else:
             # When the save succeeds: update: _file_content.
             self._file_content = self.buffer.text
@@ -186,8 +176,7 @@ class EditorBuffer(object):
             # Better not to access the document in an executor.
             document = self.buffer.document
 
-            if PTK3:
-                loop = get_event_loop()
+            loop = get_event_loop()
 
             def in_executor():
                 # Call reporter
@@ -205,12 +194,6 @@ class EditorBuffer(object):
                         # Restart reporter when the text was changed.
                         self.run_reporter()
 
-                if PTK3:
-                    loop.call_soon_threadsafe(ready)
-                else:
-                    call_from_executor(ready)
+                loop.call_soon_threadsafe(ready)
 
-            if PTK3:
-                loop.run_in_executor(None, in_executor)
-            else:
-                run_in_executor(in_executor)
+            loop.run_in_executor(None, in_executor)
