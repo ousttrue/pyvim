@@ -1,5 +1,5 @@
 from typing import Optional, Iterable, Tuple, List, TypeAlias
-from ...editor_buffer import EditorBuffer
+from .editor_buffer import EditorBuffer
 
 
 class HSplit(list):

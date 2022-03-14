@@ -227,7 +227,7 @@ class EditorRoot:
             prompt_toolkit.layout.processors.DisplayMultipleCursors(),
         ]
 
-        from ...lexer import DocumentLexer
+        from .lexer import DocumentLexer
         return prompt_toolkit.layout.BufferControl(
             lexer=DocumentLexer(editor_buffer),
             include_default_input_processors=False,
