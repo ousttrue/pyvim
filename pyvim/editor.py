@@ -24,6 +24,7 @@ import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
 from .commands.command_line import CommandLine
+from .editor_layout.editor_window.window_arrangement import WindowArrangement
 
 
 class _Editor(object):
@@ -107,9 +108,8 @@ class _Editor(object):
             cursor=prompt_toolkit.cursor_shapes.CursorShape.BLOCK,
         )
 
-        # Hide message when a key is pressed.
-
         def key_pressed(_):
+            # Hide message when a key is pressed.
             self.message = None
         self.application.key_processor.before_key_press += key_pressed
 
@@ -128,23 +128,23 @@ class _Editor(object):
         locations2 = locations or [None]
 
         # First file
-        self.editor_layout.editor_root.window_arrangement.open_buffer(
+        self.window_arrangement.open_buffer(
             locations2[0])
 
         for f in locations2[1:]:
             if in_tab_pages:
-                self.editor_layout.editor_root.window_arrangement.create_tab(f)
+                self.window_arrangement.create_tab(f)
             elif hsplit:
-                self.editor_layout.editor_root.window_arrangement.hsplit(
+                self.window_arrangement.hsplit(
                     location=f)
             elif vsplit:
-                self.editor_layout.editor_root.window_arrangement.vsplit(
+                self.window_arrangement.vsplit(
                     location=f)
             else:
-                self.editor_layout.editor_root.window_arrangement.open_buffer(
+                self.window_arrangement.open_buffer(
                     f)
 
-        self.editor_layout.editor_root.window_arrangement.active_tab_index = 0
+        self.window_arrangement.active_tab_index = 0
 
         if locations and len(locations) > 1:
             self.show_message('%i files loaded.' % len(locations))
@@ -157,7 +157,7 @@ class _Editor(object):
         current_buffer = self.application.current_buffer
 
         # Find/return the EditorBuffer with this name.
-        for b in self.editor_layout.editor_root.window_arrangement.editor_buffers:
+        for b in self.window_arrangement.editor_buffers:
             if b.buffer == current_buffer:
                 return b
 
@@ -187,6 +187,10 @@ class _Editor(object):
         except pygments.util.ClassNotFound:
             pass
 
+    @property
+    def window_arrangement(self) -> WindowArrangement:
+        return self.editor_layout.editor_root.window_arrangement
+
     def sync_with_prompt_toolkit(self):
         """
         Update the prompt-toolkit Layout and FocusStack.
@@ -197,7 +201,7 @@ class _Editor(object):
 
         # Make sure that the focus stack of prompt-toolkit has the current
         # page.
-        window = self.editor_layout.editor_root.window_arrangement.active_pt_window
+        window = self.window_arrangement.active_pt_window
         if window:
             self.application.layout.focus(window)
 
@@ -206,8 +210,7 @@ class _Editor(object):
         Show help in new window.
         """
         from .help import HELP_TEXT
-        self.editor_layout.editor_root.window_arrangement.hsplit(
-            text=HELP_TEXT)
+        self.window_arrangement.hsplit(text=HELP_TEXT)
         self.sync_with_prompt_toolkit()  # Show new window.
 
     def run(self):
