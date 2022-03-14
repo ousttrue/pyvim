@@ -72,9 +72,8 @@ class EditorRoot:
             ]
         )
 
-        self.search_toolbar = prompt_toolkit.widgets.SearchToolbar(
-            vi_mode=True, search_buffer=editor.search_buffer)
-        self.search_control = self.search_toolbar.control
+        from .searchline import SearchLine
+        self.searchline = SearchLine(config_directory)
 
     def __pt_container__(self):
         return self.container
@@ -238,5 +237,5 @@ class EditorRoot:
             input_processors=input_processors,
             buffer=editor_buffer.buffer,
             preview_search=preview_search,
-            search_buffer_control=self.search_control,
+            search_buffer_control=self.searchline.search_control,
             focus_on_click=True)

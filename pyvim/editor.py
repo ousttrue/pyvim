@@ -8,6 +8,7 @@ Usage::
     e.run()  # Runs the event loop, starts interaction.
 """
 from typing import Optional
+import os
 import pathlib
 import pygments.util
 import prompt_toolkit.application
@@ -76,17 +77,10 @@ class _Editor(object):
 
     def layout(self):
         # Ensure config directory exists.
-        config_directory = pathlib.Path('~/.pyvim')
+        config_directory = pathlib.Path(os.path.expanduser('~')) / '.pyvim'
         self.config_directory = config_directory.absolute()
         if not self.config_directory.exists():
             self.config_directory.mkdir(parents=True)
-
-        search_buffer_history = prompt_toolkit.history.FileHistory(
-            str(self.config_directory / 'search_history'))
-        self.search_buffer = prompt_toolkit.buffer.Buffer(
-            history=search_buffer_history,
-            enable_history_search=True,
-            multiline=False)
 
         # Create layout and CommandLineInterface instance.
         from .editor_layout import EditorLayout

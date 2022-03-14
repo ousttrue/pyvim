@@ -32,7 +32,7 @@ def create_key_bindings():
     @Condition
     def vi_buffer_focussed():
         app = get_app()
-        if app.layout.has_focus(editor.search_buffer) or app.layout.has_focus(editor.command_buffer):
+        if app.layout.has_focus(editor.editor_layout.editor_root.searchline.search_buffer) or app.layout.has_focus(editor.editor_layout.editor_root.commandline.command_buffer):
             return False
         return True
 
