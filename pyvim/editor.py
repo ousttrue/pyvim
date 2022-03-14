@@ -25,7 +25,7 @@ from .commands.handler import handle_command
 from .commands.preview import CommandPreviewer
 from .help import HELP_TEXT
 from .key_bindings import create_key_bindings
-from .layout import EditorLayout
+from .editor_layout import EditorLayout
 from .style import generate_built_in_styles, get_editor_style_by_name
 from .window_arrangement import WindowArrangement
 from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
