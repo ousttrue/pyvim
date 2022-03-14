@@ -13,7 +13,7 @@ Options:
 import docopt
 import os
 
-from pyvim.editor import Editor
+from pyvim.editor import get_editor
 from pyvim.rc_file import run_rc_file
 
 __all__ = (
@@ -22,7 +22,7 @@ __all__ = (
 
 
 def run():
-    a = docopt.docopt(__doc__)
+    a = docopt.docopt(__doc__)  # type: ignore
     locations = a['<location>']
     in_tab_pages = a['-p']
     hsplit = a['-o']
@@ -30,16 +30,16 @@ def run():
     pyvimrc = a['-u']
 
     # Create new editor instance.
-    editor = Editor()
+    editor = get_editor()
 
     # Apply rc file.
     if pyvimrc:
-        run_rc_file(editor, pyvimrc)
+        run_rc_file(pyvimrc)
     else:
         default_pyvimrc = os.path.expanduser('~/.pyvimrc')
 
         if os.path.exists(default_pyvimrc):
-            run_rc_file(editor, default_pyvimrc)
+            run_rc_file(default_pyvimrc)
 
     # Load files and run.
     editor.load_initial_files(locations, in_tab_pages=in_tab_pages,

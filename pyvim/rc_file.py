@@ -6,7 +6,6 @@ A pyvim configuration file is just a Python file that contains a global
 editor instance as an argument.
 """
 
-from .editor import Editor
 
 import six
 import os
@@ -16,16 +15,16 @@ __all__ = (
     'run_rc_file',
 )
 
+
 def _press_enter_to_continue():
     """ Wait for the user to press enter. """
     six.moves.input('\nPress ENTER to continue...')
 
 
-def run_rc_file(editor, rc_file):
+def run_rc_file(rc_file):
     """
     Run rc file.
     """
-    assert isinstance(editor, Editor)
     assert isinstance(rc_file, six.string_types)
 
     # Expand tildes.
@@ -48,7 +47,8 @@ def run_rc_file(editor, rc_file):
         # Now we should have a 'configure' method in this namespace. We call this
         # method with editor as an argument.
         if 'configure' in namespace:
-            namespace['configure'](editor)
+            from .editor import get_editor
+            namespace['configure'](get_editor())
 
     except Exception as e:
         # Handle possible exceptions in rc file.

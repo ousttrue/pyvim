@@ -8,6 +8,8 @@ Usage::
     e.run()  # Runs the event loop, starts interaction.
 """
 from typing import Optional
+import pathlib
+import pygments.util
 import prompt_toolkit.application
 import prompt_toolkit.buffer
 import prompt_toolkit.enums
@@ -19,7 +21,6 @@ import prompt_toolkit.input
 import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
-
 from .commands.completer import create_command_completer
 from .commands.handler import handle_command
 from .commands.preview import CommandPreviewer
@@ -30,28 +31,15 @@ from .style import generate_built_in_styles, get_editor_style_by_name
 from .window_arrangement import WindowArrangement
 from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
 
-import pygments.util
-import os
 
-__all__ = (
-    'Editor',
-)
-
-
-class Editor(object):
+class _Editor(object):
     """
     The main class. Containing the whole editor.
-
-    :param config_directory: Place where configuration is stored.
-    :param input: (Optionally) `prompt_toolkit.input.Input` object.
-    :param output: (Optionally) `prompt_toolkit.output.Output` object.
     """
 
-    def __init__(self, config_directory: str = '~/.pyvim',
-                 input: Optional[prompt_toolkit.input.Input] = None,
-                 output: Optional[prompt_toolkit.output.Output] = None):
-        self.input = input
-        self.output = output
+    def __init__(self):
+        self.input: Optional[prompt_toolkit.input.Input] = None
+        self.output: Optional[prompt_toolkit.output.Output] = None
 
         # Vi options.
         self.show_line_numbers = True
@@ -73,12 +61,6 @@ class Editor(object):
         self.cursorline = False  # ':set cursorline'
         self.cursorcolumn = False  # ':set cursorcolumn'
         self.colorcolumn = []  # ':set colorcolumn'. List of integers.
-
-        # Ensure config directory exists.
-        self.config_directory = os.path.abspath(
-            os.path.expanduser(config_directory))
-        if not os.path.exists(self.config_directory):
-            os.mkdir(self.config_directory)
 
         self.window_arrangement = WindowArrangement(self)
         self.message = None
@@ -109,8 +91,14 @@ class Editor(object):
 
             return False
 
-        commands_history = prompt_toolkit.history.FileHistory(os.path.join(
-            self.config_directory, 'commands_history'))
+        # Ensure config directory exists.
+        config_directory = pathlib.Path('~/.pyvim')
+        self.config_directory = config_directory.absolute()
+        if not self.config_directory.exists():
+            self.config_directory.mkdir(parents=True)
+
+        commands_history = prompt_toolkit.history.FileHistory(
+            str(self.config_directory / 'commands_history'))
         self.command_buffer = prompt_toolkit.buffer.Buffer(
             accept_handler=handle_action,
             enable_history_search=True,
@@ -119,7 +107,7 @@ class Editor(object):
             multiline=False)
 
         search_buffer_history = prompt_toolkit.history.FileHistory(
-            os.path.join(self.config_directory, 'search_history'))
+            str(self.config_directory / 'search_history'))
         self.search_buffer = prompt_toolkit.buffer.Buffer(
             history=search_buffer_history,
             enable_history_search=True,
@@ -288,3 +276,10 @@ class Editor(object):
         self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
 
         self.command_buffer.reset(append_to_history=append_to_history)
+
+
+EDITOR = _Editor()
+
+
+def get_editor() -> _Editor:
+    return EDITOR
