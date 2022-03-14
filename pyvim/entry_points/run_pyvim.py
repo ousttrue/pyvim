@@ -13,7 +13,6 @@ Options:
 import docopt
 import os
 
-from pyvim.editor import get_editor
 from pyvim.rc_file import run_rc_file
 
 __all__ = (
@@ -30,6 +29,7 @@ def run():
     pyvimrc = a['-u']
 
     # Create new editor instance.
+    from pyvim.editor import get_editor
     editor = get_editor()
 
     # Apply rc file.

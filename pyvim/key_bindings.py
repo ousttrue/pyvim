@@ -17,14 +17,16 @@ def _current_window_for_event(event):
     return event.app.layout.current_window
 
 
-def create_key_bindings(editor):
+def create_key_bindings():
     """
     Create custom key bindings.
 
     This starts with the key bindings, defined by `prompt-toolkit`, but adds
     the ones which are specific for the editor.
     """
-    kb = KeyBindings()
+    from pyvim.editor import get_editor
+    editor = get_editor()
+    kb = editor.key_bindings
 
     # Filters.
     @Condition
@@ -78,10 +80,10 @@ def create_key_bindings(editor):
         """
         Entering command mode.
         """
-        editor.enter_command_mode()
+        editor.commandline.enter_command_mode()
 
     @kb.add('tab', filter=vi_insert_mode &
-            ~has_focus(editor.command_buffer) & whitespace_before_cursor_on_line)
+            ~editor.editor_layout.editor_root.commandline.has_focus & whitespace_before_cursor_on_line)
     def autocomplete_or_indent(event):
         """
         When the 'tab' key is pressed with only whitespace character before the
@@ -96,12 +98,12 @@ def create_key_bindings(editor):
     @kb.add('escape', filter=has_focus(editor.command_buffer))
     @kb.add('c-c', filter=has_focus(editor.command_buffer))
     @kb.add('backspace',
-        filter=has_focus(editor.command_buffer) & Condition(lambda: editor.command_buffer.text == ''))
+            filter=has_focus(editor.command_buffer) & Condition(lambda: editor.command_buffer.text == ''))
     def leave_command_mode(event):
         """
         Leaving command mode.
         """
-        editor.leave_command_mode()
+        editor.commandline.leave_command_mode()
 
     @kb.add('c-w', 'c-w', filter=in_navigation_mode)
     def focus_next_window(event):
@@ -141,7 +143,7 @@ def create_key_bindings(editor):
     @Condition
     def in_file_explorer_mode():
         return bool(editor.current_editor_buffer and
-            editor.current_editor_buffer.in_file_explorer_mode)
+                    editor.current_editor_buffer.in_file_explorer_mode)
 
     @kb.add('enter', filter=in_file_explorer_mode)
     def open_path(event):

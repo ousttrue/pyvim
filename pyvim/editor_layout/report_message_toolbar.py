@@ -9,7 +9,7 @@ class ReportMessageToolbar(prompt_toolkit.layout.containers.ConditionalContainer
     (It shows the error message, related to the current line.)
     """
 
-    def __init__(self):
+    def __init__(self, commandbuffer_has_focus):
         from pyvim.editor import get_editor
         editor = get_editor()
 
@@ -27,4 +27,4 @@ class ReportMessageToolbar(prompt_toolkit.layout.containers.ConditionalContainer
 
         super(ReportMessageToolbar, self).__init__(
             prompt_toolkit.widgets.FormattedTextToolbar(get_formatted_text),
-            filter=~prompt_toolkit.filters.has_focus(editor.command_buffer) & ~prompt_toolkit.filters.is_searching & ~prompt_toolkit.filters.has_focus('system'))
+            filter=~commandbuffer_has_focus & ~prompt_toolkit.filters.is_searching & ~prompt_toolkit.filters.has_focus('system'))

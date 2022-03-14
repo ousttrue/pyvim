@@ -15,12 +15,14 @@ import prompt_toolkit.buffer
 import prompt_toolkit.enums
 import prompt_toolkit.filters
 import prompt_toolkit.history
+import prompt_toolkit.key_binding
 import prompt_toolkit.key_binding.vi_state
 import prompt_toolkit.styles
 import prompt_toolkit.input
 import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
+from .editor_layout.editor_window.command_line import CommandLine
 
 
 class _Editor(object):
@@ -69,36 +71,15 @@ class _Editor(object):
             FileIO(),
         ]
 
-        # Create history and search buffers.
-        def handle_action(buff: prompt_toolkit.buffer.Buffer) -> bool:
-            ' When enter is pressed in the Vi command line. '
-            text = buff.text  # Remember: leave_command_mode resets the buffer.
+        # Create key bindings registry.
+        self.key_bindings = prompt_toolkit.key_binding.KeyBindings()
 
-            # First leave command mode. We want to make sure that the working
-            # pane is focussed again before executing the command handlers.
-            self.leave_command_mode(append_to_history=True)
-
-            # Execute command.
-            from .commands.handler import handle_command
-            handle_command(self, text)
-
-            return False
-
+    def layout(self):
         # Ensure config directory exists.
         config_directory = pathlib.Path('~/.pyvim')
         self.config_directory = config_directory.absolute()
         if not self.config_directory.exists():
             self.config_directory.mkdir(parents=True)
-
-        from .commands.completer import create_command_completer
-        commands_history = prompt_toolkit.history.FileHistory(
-            str(self.config_directory / 'commands_history'))
-        self.command_buffer = prompt_toolkit.buffer.Buffer(
-            accept_handler=handle_action,
-            enable_history_search=True,
-            completer=create_command_completer(),
-            history=commands_history,
-            multiline=False)
 
         search_buffer_history = prompt_toolkit.history.FileHistory(
             str(self.config_directory / 'search_history'))
@@ -107,14 +88,10 @@ class _Editor(object):
             enable_history_search=True,
             multiline=False)
 
-        # Create key bindings registry.
-        from .key_bindings import create_key_bindings
-        self.key_bindings = create_key_bindings(self)
-
-    def layout(self):
         # Create layout and CommandLineInterface instance.
         from .editor_layout import EditorLayout
-        self.editor_layout = EditorLayout()
+        self.editor_layout = EditorLayout(self.config_directory)
+
         # Create Application.
         self.application = prompt_toolkit.application.Application(
             input=self.input,
@@ -136,24 +113,16 @@ class _Editor(object):
             cursor=prompt_toolkit.cursor_shapes.CursorShape.BLOCK,
         )
 
-        # Handle command line previews.
-        # (e.g. when typing ':colorscheme blue', it should already show the
-        # preview before pressing enter.)
-        def preview(_):
-            if self.application.layout.has_focus(self.command_buffer):
-                self.previewer.preview(self.command_buffer.text)
-        self.command_buffer.on_text_changed += preview
-
         # Hide message when a key is pressed.
+
         def key_pressed(_):
             self.message = None
         self.application.key_processor.before_key_press += key_pressed
 
-        # Command line previewer.
-        from .commands.preview import CommandPreviewer
-        self.previewer = CommandPreviewer(self)
-
         self.last_substitute_text = ''
+
+        from .key_bindings import create_key_bindings
+        create_key_bindings()
 
     def load_initial_files(self, locations, in_tab_pages=False, hsplit=False, vsplit=False):
         """
@@ -262,25 +231,13 @@ class _Editor(object):
         # Run eventloop of prompt_toolkit.
         self.application.run(pre_run=pre_run)
 
-    def enter_command_mode(self):
-        """
-        Go into command mode.
-        """
-        self.application.layout.focus(self.command_buffer)
-        self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.INSERT
+    @property
+    def commandline(self) -> CommandLine:
+        return self.editor_layout.editor_root.commandline
 
-        self.previewer.save()
-
-    def leave_command_mode(self, append_to_history=False):
-        """
-        Leave command mode. Focus document window again.
-        """
-        self.previewer.restore()
-
-        self.application.layout.focus_last()
-        self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
-
-        self.command_buffer.reset(append_to_history=append_to_history)
+    @property
+    def command_buffer(self) -> prompt_toolkit.buffer.Buffer:
+        return self.commandline.command_buffer
 
 
 EDITOR = _Editor()

@@ -1,6 +1,7 @@
 """
 The actual layout for the renderer.
 """
+import pathlib
 import prompt_toolkit.filters
 import prompt_toolkit.layout
 import prompt_toolkit.widgets
@@ -18,11 +19,10 @@ class EditorLayout(object):
     The main layout class.
     """
 
-    def __init__(self):
+    def __init__(self, config_directory: pathlib.Path):
         from .editor_window import create
-        self.editor_root, tabbar = create()
+        self.editor_root, tabbar = create(config_directory)
 
-        from .command_line import CommandLine
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
 
@@ -30,8 +30,8 @@ class EditorLayout(object):
             content=prompt_toolkit.layout.HSplit([
                 tabbar,
                 self.editor_root,
-                CommandLine(),
-                ReportMessageToolbar(),
+                self.editor_root.commandline,
+                ReportMessageToolbar(self.editor_root.commandline.has_focus),
                 prompt_toolkit.widgets.SystemToolbar(),
                 self.editor_root.search_toolbar,
             ]),

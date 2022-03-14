@@ -7,7 +7,7 @@ __all__ = (
 )
 
 
-def handle_command(editor, input_string):
+def handle_command(input_string):
     """
     Handle commands entered on the Vi command line.
     """
@@ -27,7 +27,8 @@ def handle_command(editor, input_string):
     flags = variables.get('flags', '')
 
     # Call command handler.
-
+    from pyvim.editor import get_editor
+    editor = get_editor()
     if go_to_line is not None:
         # Handle go-to-line.
         _go_to_line(editor, go_to_line)

@@ -1,3 +1,4 @@
+import pathlib
 import sys
 from functools import partial
 from prompt_toolkit.application.current import get_app
@@ -22,7 +23,7 @@ TABSTOP_DOT = _try_char('\u2508', '.')
 
 
 class EditorRoot:
-    def __init__(self) -> None:
+    def __init__(self, config_directory: pathlib.Path) -> None:
         # Mapping from (`window_arrangement.Window`, `EditorBuffer`) to a frame
         # (Layout instance).
         # We keep this as a cache in order to easily reuse the same frames when
@@ -40,6 +41,9 @@ class EditorRoot:
         from pyvim.editor import get_editor
         editor = get_editor()
 
+        from .command_line import CommandLine
+        self.commandline = CommandLine(config_directory)
+
         self.container = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.VSplit([
                 prompt_toolkit.layout.Window(
@@ -49,13 +53,13 @@ class EditorRoot:
                 prompt_toolkit.layout.Float(xcursor=True, ycursor=True,
                                             content=prompt_toolkit.layout.menus.CompletionsMenu(max_height=12,
                                                                                                 scroll_offset=2,
-                                                                                                extra_filter=~prompt_toolkit.filters.has_focus(editor.command_buffer))),
+                                                                                                extra_filter=~self.commandline.has_focus)),
                 prompt_toolkit.layout.Float(
                     content=BufferListOverlay(), bottom=1, left=0),
                 prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,
                                             content=prompt_toolkit.layout.ConditionalContainer(
                                                 prompt_toolkit.widgets.CompletionsToolbar(),
-                                                filter=prompt_toolkit.filters.has_focus(editor.command_buffer) &
+                                                filter=self.commandline.has_focus &
                                                 ~_bufferlist_overlay_visible() &
                                                 prompt_toolkit.filters.Condition(lambda: editor.show_wildmenu))),
                 prompt_toolkit.layout.Float(bottom=1, left=0, right=0, height=1,

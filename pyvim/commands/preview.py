@@ -9,14 +9,13 @@ class CommandPreviewer(object):
     """
     Already show the effect of Vi commands before enter is pressed.
     """
-    def __init__(self, editor):
-        self.editor = editor
 
     def save(self):
         """
         Back up current editor state.
         """
-        e = self.editor
+        from pyvim.editor import get_editor
+        e = get_editor()
 
         self._style = e.current_style
         self._show_line_numbers = e.show_line_numbers
@@ -31,7 +30,8 @@ class CommandPreviewer(object):
         """
         Focus of Vi command line lost, undo preview.
         """
-        e = self.editor
+        from pyvim.editor import get_editor
+        e = get_editor()
 
         e.current_style = self._style
         e.show_line_numbers = self._show_line_numbers
@@ -52,7 +52,8 @@ class CommandPreviewer(object):
 
     def _apply(self, input_string):
         """ Apply command. """
-        e = self.editor
+        from pyvim.editor import get_editor
+        e = get_editor()
 
         # Parse command.
         m = COMMAND_GRAMMAR.match(input_string)
