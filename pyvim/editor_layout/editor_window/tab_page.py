@@ -1,5 +1,6 @@
 from typing import Optional, Iterable, Tuple, List, TypeAlias
 from .editor_buffer import EditorBuffer
+import prompt_toolkit.layout
 
 
 class HSplit(list):
@@ -24,7 +25,7 @@ class Window(object):
         self.editor_buffer = editor_buffer
 
         # The prompt_toolkit layout Window.
-        self.pt_window = None
+        self.pt_window: Optional[prompt_toolkit.layout.containers.Window] = None
 
     def __repr__(self):
         return '%s(editor_buffer=%r)' % (self.__class__.__name__, self.editor_buffer)

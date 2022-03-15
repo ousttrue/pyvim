@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 import pathlib
 import sys
 from functools import partial
@@ -206,13 +206,14 @@ class EditorRoot:
         Update layout to match the layout as described in the
         WindowArrangement.
         """
+
         # Start with an empty frames list everytime, to avoid memory leaks.
         existing_frames = self._frames
         self._frames = {}
 
         from . import window_arrangement
 
-        def create_layout_from_node(node):
+        def create_layout_from_node(node) -> Union[prompt_toolkit.layout.containers.Window, prompt_toolkit.layout.containers.HSplit, prompt_toolkit.layout.containers.VSplit]:
             if isinstance(node, window_arrangement.Window):
                 # Create frame for Window, or reuse it, if we had one already.
                 key = (node, node.editor_buffer)
@@ -227,7 +228,7 @@ class EditorRoot:
                 self._frames[key] = frame
                 return frame
 
-            elif isinstance(node, window_arrangement.VSplit):
+            if isinstance(node, window_arrangement.VSplit):
                 def get_vertical_border_char():
                     " Return the character to be used for the vertical border. "
                     return _try_char('\u2502', '|', get_app().output.encoding())
@@ -241,6 +242,8 @@ class EditorRoot:
             if isinstance(node, window_arrangement.HSplit):
                 return prompt_toolkit.layout.HSplit([create_layout_from_node(n) for n in node])
 
-        layout = create_layout_from_node(
+            raise RuntimeError()
+
+        assert(self.window_arrangement.active_tab)
+        self.container.content = create_layout_from_node(
             self.window_arrangement.active_tab.root)
-        self.container.content = layout
