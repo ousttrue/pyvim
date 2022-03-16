@@ -65,15 +65,3 @@ def _go_to_line(editor, line):
     b = editor.application.current_buffer
     b.cursor_position = b.document.translate_row_col_to_index(
         max(0, int(line) - 1), 0)
-
-
-async def worker(queue: asyncio.Queue):
-    logger.info('start worker')
-    while True:
-        value = await queue.get()
-        if value is None:
-            logger.info('exit worker')
-            break
-
-        logger.debug(value)
-        handle_command(value)

@@ -116,11 +116,6 @@ class _Editor(object):
         from .key_bindings import create_key_bindings
         create_key_bindings()
 
-        self.queue = asyncio.Queue()
-
-    def enqueue(self, value: str):
-        self.queue.put_nowait(value)
-
     def load_initial_files(self, locations, in_tab_pages=False, hsplit=False, vsplit=False):
         """
         Load a list of files.
@@ -219,8 +214,8 @@ class _Editor(object):
             self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
 
             assert(self.application.loop)
-            from .commands.handler import worker
-            self.application.loop.create_task(worker(self.queue))
+            from .event_queue import worker
+            self.application.loop.create_task(worker())
 
         # Run eventloop of prompt_toolkit.
         self.application.run(pre_run=pre_run)
