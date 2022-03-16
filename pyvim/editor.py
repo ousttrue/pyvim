@@ -7,7 +7,7 @@ Usage::
     e = Editor(files_to_edit)
     e.run()  # Runs the event loop, starts interaction.
 """
-from typing import Optional
+from typing import Optional, NamedTuple, List
 import os
 import pathlib
 import pygments.util
@@ -37,10 +37,7 @@ class _Editor(object):
         self.output: Optional[prompt_toolkit.output.Output] = None
 
         # Vi options.
-        self.show_line_numbers = True
-        self.highlight_search = True
         self.paste_mode = False
-        self.show_ruler = True
         self.show_wildmenu = True
         self.expand_tab = True  # Insect spaces instead of tab characters.
         self.tabstop = 4  # Number of spaces that a tab character represents.
@@ -50,19 +47,17 @@ class _Editor(object):
         self.display_unprintable_characters = True  # ':set list'
         self.enable_jedi = True  # ':set jedi', for Python Jedi completion.
         self.scroll_offset = 0  # ':set scrolloff'
-        self.relative_number = False  # ':set relativenumber'
         self.wrap_lines = True  # ':set wrap'
         self.break_indent = False  # ':set breakindent'
-        self.cursorline = False  # ':set cursorline'
-        self.cursorcolumn = False  # ':set cursorcolumn'
-        self.colorcolumn = []  # ':set colorcolumn'. List of integers.
 
         self.message = None
 
         # Load styles. (Mapping from name to Style class.)
         from .style import generate_built_in_styles, get_editor_style_by_name
         self.styles = generate_built_in_styles()
-        self.current_style = get_editor_style_by_name('vim')
+
+        from .editor_state import EditorState
+        self.state = EditorState(get_editor_style_by_name('vim'))
 
         # I/O backends.
         from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
@@ -95,7 +90,7 @@ class _Editor(object):
             layout=prompt_toolkit.layout.Layout(self.editor_layout),
             key_bindings=self.key_bindings,
             style=prompt_toolkit.styles.DynamicStyle(
-                lambda: self.current_style),
+                lambda: self.state.current_style),
             paste_mode=prompt_toolkit.filters.Condition(
                 lambda: self.paste_mode),
             #            ignore_case=Condition(lambda: self.ignore_case),  # TODO
@@ -177,16 +172,6 @@ class _Editor(object):
         """
         self.message = message
 
-    def use_colorscheme(self, name='default'):
-        """
-        Apply new colorscheme. (By name.)
-        """
-        try:
-            from .style import get_editor_style_by_name
-            self.current_style = get_editor_style_by_name(name)
-        except pygments.util.ClassNotFound:
-            pass
-
     @property
     def window_arrangement(self) -> WindowArrangement:
         return self.editor_layout.editor_root.window_arrangement
@@ -235,6 +220,63 @@ class _Editor(object):
     @property
     def command_buffer(self) -> prompt_toolkit.buffer.Buffer:
         return self.commandline.command_buffer
+
+    def use_colorscheme(self, name: str = 'default'):
+        """
+        Apply new colorscheme. (By name.)
+        """
+        try:
+            from .style import get_editor_style_by_name
+            self.state = self.state._replace(
+                current_style=get_editor_style_by_name(name))
+        except pygments.util.ClassNotFound:
+            pass
+
+    def apply(self, input_string: str):
+        """ Apply command. """
+        # Parse command.
+        from .commands.grammar import parse_input
+        variables, command, set_option = parse_input(input_string)
+        if not variables:
+            return
+
+        # Preview colorschemes.
+        if command == 'colorscheme':
+            colorscheme = variables.get('colorscheme')
+            if colorscheme:
+                self.use_colorscheme(colorscheme)
+
+        # Preview some set commands.
+        if command == 'set':
+            if set_option in ('hlsearch', 'hls'):
+                self.state = self.state._replace(highlight_search=True)
+            elif set_option in ('nohlsearch', 'nohls'):
+                self.state = self.state._replace(highlight_search=False)
+            elif set_option in ('nu', 'number'):
+                self.state = self.state._replace(show_line_numbers=True)
+            elif set_option in ('nonu', 'nonumber'):
+                self.state = self.state._replace(show_line_numbers=False)
+            elif set_option in ('ruler', 'ru'):
+                self.state = self.state._replace(show_ruler=True)
+            elif set_option in ('noruler', 'noru'):
+                self.state = self.state._replace(show_ruler=False)
+            elif set_option in ('relativenumber', 'rnu'):
+                self.state = self.state._replace(relative_number=True)
+            elif set_option in ('norelativenumber', 'nornu'):
+                self.state = self.state._replace(relative_number=False)
+            elif set_option in ('cursorline', 'cul'):
+                self.state = self.state._replace(cursorline=True)
+            elif set_option in ('cursorcolumn', 'cuc'):
+                self.state = self.state._replace(cursorcolumn=True)
+            elif set_option in ('nocursorline', 'nocul'):
+                self.state = self.state._replace(cursorline=False)
+            elif set_option in ('nocursorcolumn', 'nocuc'):
+                self.state = self.state._replace(cursorcolumn=False)
+            elif set_option in ('colorcolumn', 'cc'):
+                value = variables.get('set_value', '')
+                if value:
+                    self.state = self.state._replace(
+                        colorcolumn=[int(v) for v in value.split(',') if v.isdigit()])
 
 
 EDITOR = _Editor()

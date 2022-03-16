@@ -1,6 +1,5 @@
-
-from prompt_toolkit.contrib.regular_languages.compiler import compile
-
+from typing import Optional, Tuple, NamedTuple
+from prompt_toolkit.contrib.regular_languages.compiler import compile, Variables
 from .commands import get_commands_taking_locations
 
 
@@ -45,3 +44,20 @@ COMMAND_GRAMMAR = compile(r"""
 """ % {
     'commands_taking_locations': '|'.join(get_commands_taking_locations()),
 })
+
+
+class CommandSetOption(NamedTuple):
+    variables: Optional[Variables] = None
+    command: Optional[str] = None
+    set_option: Optional[str] = None
+
+
+def parse_input(input_string: str) -> CommandSetOption:
+    m = COMMAND_GRAMMAR.match(input_string)
+    if m is None:
+        return CommandSetOption()
+
+    variables = m.variables()
+    command = variables.get('command')
+    set_option = variables.get('set_option')
+    return CommandSetOption(variables, command, set_option)

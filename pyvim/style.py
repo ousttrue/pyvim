@@ -1,7 +1,7 @@
 """
 The styles, for the colorschemes.
 """
-from prompt_toolkit.styles import Style, merge_styles
+import prompt_toolkit.styles
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 
 from pygments.styles import get_all_styles, get_style_by_name
@@ -19,7 +19,7 @@ def get_editor_style_by_name(name):
     name.
     """
     if name == 'vim':
-        vim_style = Style.from_dict(default_vim_style)
+        vim_style = prompt_toolkit.styles.Style.from_dict(default_vim_style)
         bg_style = {
 
         }
@@ -30,10 +30,10 @@ def get_editor_style_by_name(name):
             '': f'bg:{pygment_style.background_color}',
         }
 
-    return merge_styles([
+    return prompt_toolkit.styles.merge_styles([
         vim_style,
-        Style.from_dict(style_extensions),
-        Style.from_dict(bg_style),
+        prompt_toolkit.styles.Style.from_dict(style_extensions),
+        prompt_toolkit.styles.Style.from_dict(bg_style),
     ])
 
 

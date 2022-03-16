@@ -120,14 +120,14 @@ def create_window_frame(search_control, editor_buffer: EditorBuffer) -> Tuple[pr
         left_margins=[prompt_toolkit.layout.ConditionalMargin(
             margin=prompt_toolkit.layout.NumberedMargin(
                 display_tildes=True,
-                relative=prompt_toolkit.filters.Condition(lambda: editor.relative_number)),
-            filter=prompt_toolkit.filters.Condition(lambda: editor.show_line_numbers))],
+                relative=prompt_toolkit.filters.Condition(lambda: editor.state.relative_number)),
+            filter=prompt_toolkit.filters.Condition(lambda: editor.state.show_line_numbers))],
         cursorline=prompt_toolkit.filters.Condition(
-            lambda: editor.cursorline),
+            lambda: editor.state.cursorline),
         cursorcolumn=prompt_toolkit.filters.Condition(
-            lambda: editor.cursorcolumn),
+            lambda: editor.state.cursorcolumn),
         colorcolumns=(
-            lambda: [prompt_toolkit.layout.ColorColumn(pos) for pos in editor.colorcolumn]),
+            lambda: [prompt_toolkit.layout.ColorColumn(pos) for pos in editor.state.colorcolumn]),
         ignore_content_width=True,
         ignore_content_height=True,
         get_line_prefix=partial(get_line_prefix, editor_buffer.buffer))

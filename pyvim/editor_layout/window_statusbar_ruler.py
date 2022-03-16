@@ -46,4 +46,4 @@ class WindowStatusBarRuler(prompt_toolkit.layout.containers.ConditionalContainer
                 style='class:toolbar.status',
                 height=1,
             ),
-            filter=prompt_toolkit.filters.Condition(lambda: editor.show_ruler))
+            filter=prompt_toolkit.filters.Condition(lambda: editor.state.show_ruler))
