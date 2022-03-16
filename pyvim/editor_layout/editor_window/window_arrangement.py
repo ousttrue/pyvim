@@ -7,9 +7,10 @@ represents the rendering, while this is more specific for the editor itself.
 """
 from typing import List, Optional
 from six import string_types
-from .editor_buffer import EditorBuffer
-from . import tab_page
 import prompt_toolkit.layout.containers
+from .editor_buffer import EditorBuffer
+from .openbuffer_info import OpenBufferInfo
+from . import tab_page
 
 __all__ = (
     'WindowArrangement',
@@ -23,41 +24,34 @@ class WindowArrangement(object):
         self.editor_buffers: List[EditorBuffer] = []
 
     @property
-    def active_tab(self) -> Optional[tab_page.TabPage]:
+    def active_tab(self) -> tab_page.TabPage:
         """ The active TabPage or None. """
         if self.active_tab_index is not None:
             return self.tab_pages[self.active_tab_index]
+        raise RuntimeError()
 
     @property
-    def active_editor_buffer(self) -> Optional[EditorBuffer]:
+    def active_window(self) -> tab_page.TabWindow:
+        return self.active_tab.active_window
+
+    @property
+    def active_editor_buffer(self) -> EditorBuffer:
         """ The active EditorBuffer or None. """
-        if self.active_tab and self.active_tab.active_window:
-            return self.active_tab.active_window.editor_buffer
+        return self.active_window.editor_buffer
 
     @property
-    def active_pt_window(self) -> Optional[prompt_toolkit.layout.containers.Window]:
+    def active_pt_window(self) -> prompt_toolkit.layout.containers.Window:
         " The active prompt_toolkit layout Window. "
-        if self.active_tab:
-            w = self.active_tab.active_window
-            if w:
-                return w.pt_window
+        assert(self.active_window.pt_window)
+        return self.active_window.pt_window
 
-    def get_editor_buffer_for_location(self, location):
+    def get_editor_buffer_for_location(self, location: str):
         """
         Return the `EditorBuffer` for this location.
         When this file was not yet loaded, return None
         """
         for eb in self.editor_buffers:
             if eb.location == location:
-                return eb
-
-    def get_editor_buffer_for_buffer_name(self, buffer_name):
-        """
-        Return the `EditorBuffer` for this buffer_name.
-        When not found, return None
-        """
-        for eb in self.editor_buffers:
-            if eb.buffer_name == buffer_name:
                 return eb
 
     def close_window(self):
@@ -106,7 +100,7 @@ class WindowArrangement(object):
         """
         Close all other windows, except the current one.
         """
-        self.tab_pages = [tab_page.TabPage(self.active_tab.active_window)]
+        self.tab_pages = [tab_page.TabPage(self.active_window)]
         self.active_tab_index = 0
 
     def cycle_focus(self):
@@ -184,16 +178,16 @@ class WindowArrangement(object):
             editor_buffer, EditorBuffer) and editor_buffer not in self.editor_buffers
 
         # Add to list of EditorBuffers
-        eb = self.active_editor_buffer
-        if eb is None:
-            self.editor_buffers.append(editor_buffer)
-        else:
+        try:
+            eb = self.active_editor_buffer
             # Append right after the currently active one.
             try:
-                index = self.editor_buffers.index(self.active_editor_buffer)
+                index = self.editor_buffers.index(eb)
             except ValueError:
                 index = 0
             self.editor_buffers.insert(index, editor_buffer)
+        except:
+            self.editor_buffers.append(editor_buffer)
 
         # When there are no tabs/windows yet, create one for this buffer.
         if self.tab_pages == []:
@@ -220,7 +214,9 @@ class WindowArrangement(object):
 
         if location is None:
             # Create and add an empty EditorBuffer
-            eb = EditorBuffer(self.editor, text=text)
+            from pyvim.editor import get_editor
+            editor = get_editor()
+            eb = EditorBuffer(editor, text=text)
             self._add_editor_buffer(eb)
 
             return eb
@@ -305,7 +301,7 @@ class WindowArrangement(object):
                 eb = self.editor_buffers[new_index]
 
                 # Create a window for this buffer.
-                self.tab_pages.append(tab_page.TabPage(tab_page.Window(eb)))
+                self.tab_pages.append(tab_page.TabPage(tab_page.TabWindow(eb)))
                 self.active_tab_index = 0
             else:
                 # Create a new buffer. (This will also create the window
@@ -319,10 +315,10 @@ class WindowArrangement(object):
         eb = self._get_or_create_editor_buffer(location)
 
         self.tab_pages.insert(self.active_tab_index + 1,
-                              tab_page.TabPage(tab_page.Window(eb)))
+                              tab_page.TabPage(tab_page.TabWindow(eb)))
         self.active_tab_index += 1
 
-    def list_open_buffers(self):
+    def list_open_buffers(self) -> List[OpenBufferInfo]:
         """
         Return a `OpenBufferInfo` list that gives information about the
         open buffers.

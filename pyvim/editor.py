@@ -7,7 +7,7 @@ Usage::
     e = Editor(files_to_edit)
     e.run()  # Runs the event loop, starts interaction.
 """
-from typing import Optional, NamedTuple, List
+from typing import Optional
 import logging
 import asyncio
 import os

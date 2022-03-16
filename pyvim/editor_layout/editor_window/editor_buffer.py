@@ -1,12 +1,15 @@
+import logging
+from six import string_types
+import os
+from asyncio import get_event_loop
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
 from prompt_toolkit import __version__ as ptk_version
 from pyvim.completion import DocumentCompleter
 from pyvim.reporting import report
-from six import string_types
-import os
-from asyncio import get_event_loop
+logger = logging.getLogger(__name__)
+
 
 __all__ = (
     'EditorBuffer',
@@ -25,6 +28,7 @@ class EditorBuffer(object):
         assert location is None or isinstance(location, string_types)
         assert text is None or isinstance(text, string_types)
         assert not (location and text)
+        logger.info(location or text)
 
         self.location = location
         self.encoding = 'utf-8'
