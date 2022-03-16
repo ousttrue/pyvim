@@ -1,4 +1,3 @@
-from typing import NamedTuple, List
 import logging
 import prompt_toolkit.layout
 import prompt_toolkit.formatted_text
@@ -18,14 +17,14 @@ class LoggerWindow(logging.Handler):
         self.logs: prompt_toolkit.formatted_text.StyleAndTextTuples = []
         self.control = prompt_toolkit.layout.FormattedTextControl(
             lambda: self.logs)
-        self.container = prompt_toolkit.layout.Window(
-            self.control, height=8, style=DEFAULT)
+        window = prompt_toolkit.layout.Window(
+            self.control, style=DEFAULT)
+        self.container = prompt_toolkit.layout.ScrollablePane(window, height=8)
 
         # set root logger
         self.setFormatter(logging.Formatter(
             '%(filename)s:%(levelno)s: %(message)s'))
         logging.getLogger().handlers = [self]
-        logging.info('start')
 
     def __pt_container__(self) -> prompt_toolkit.layout.Container:
         return self.container
@@ -46,8 +45,8 @@ class LoggerWindow(logging.Handler):
                 raise NotImplementedError()
         self.logs.append(('', msg))
         self.logs.append(NL)
-        while self.get_line_count() > 8:
-            self.remove_line(0)
+        if self.get_line_count() > 8:
+            self.container.vertical_scroll = self.get_line_count() - 8
         get_app().invalidate()
 
     def write(self, m):

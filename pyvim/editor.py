@@ -7,7 +7,7 @@ Usage::
     e = Editor(files_to_edit)
     e.run()  # Runs the event loop, starts interaction.
 """
-from typing import Optional, List
+from typing import Optional, List, Dict
 import logging
 import os
 import pathlib
@@ -27,6 +27,7 @@ import prompt_toolkit.cursor_shapes
 from .commands.commandline import CommandLine
 from .editor_layout.editor_window.window_arrangement import WindowArrangement
 from .editor_layout.editor_window.editor_buffer import EditorBuffer
+from .lsp import lsp_client
 logger = logging.getLogger(__name__)
 
 
@@ -73,6 +74,8 @@ class _Editor(object):
 
         # Create key bindings registry.
         self.key_bindings = prompt_toolkit.key_binding.KeyBindings()
+
+        self.lsp: Dict[str, lsp_client.LSPClient] = {}
 
     def layout(self):
         # Ensure config directory exists.
@@ -288,7 +291,14 @@ class _Editor(object):
     def launch(self, eb: EditorBuffer):
         ft = eb.filetype
         if ft == '.py':
-            logger.info('launch lsp for python')
+            if ft not in self.lsp:
+                logger.info('launch lsp for python')
+                assert(self.application.loop)
+                assert(eb.location)
+                lsp = lsp_client.LSPClient(
+                    self.application.loop, eb.location.parent)
+                lsp.launch(lsp_client.PYTHON)
+                self.lsp[ft] = lsp
         else:
             logger.warn(f'unknown file type: {ft}')
 

@@ -61,4 +61,6 @@ async def worker():
                 case _:
                     raise RuntimeError('unknown')
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
+            raise
+
