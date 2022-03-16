@@ -214,7 +214,8 @@ class EditorRoot:
         from . import window_arrangement
 
         def create_layout_from_node(node) -> Union[prompt_toolkit.layout.containers.Window, prompt_toolkit.layout.containers.HSplit, prompt_toolkit.layout.containers.VSplit]:
-            if isinstance(node, window_arrangement.Window):
+            from . import tab_page
+            if isinstance(node, tab_page.TabWindow):
                 # Create frame for Window, or reuse it, if we had one already.
                 key = (node, node.editor_buffer)
                 frame = existing_frames.get(key)
@@ -228,19 +229,19 @@ class EditorRoot:
                 self._frames[key] = frame
                 return frame
 
-            if isinstance(node, window_arrangement.VSplit):
+            if isinstance(node, tab_page.TabVSplit):
                 def get_vertical_border_char():
                     " Return the character to be used for the vertical border. "
                     return _try_char('\u2502', '|', get_app().output.encoding())
 
                 return prompt_toolkit.layout.VSplit(
-                    [create_layout_from_node(n) for n in node],
+                    [create_layout_from_node(n) for n in node.children],
                     padding=1,
                     padding_char=get_vertical_border_char(),
                     padding_style='class:frameborder')
 
-            if isinstance(node, window_arrangement.HSplit):
-                return prompt_toolkit.layout.HSplit([create_layout_from_node(n) for n in node])
+            if isinstance(node, tab_page.TabHSplit):
+                return prompt_toolkit.layout.HSplit([create_layout_from_node(n) for n in node.children])
 
             raise RuntimeError()
 

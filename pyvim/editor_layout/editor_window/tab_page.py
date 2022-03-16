@@ -1,21 +1,13 @@
-from typing import Optional, Iterable, Tuple, List, TypeAlias
+from typing import Optional, Iterable, Tuple, List
 from .editor_buffer import EditorBuffer
 import prompt_toolkit.layout
 
 
-class HSplit(list):
-    """ Horizontal split. (This is a higher level split than
-    prompt_toolkit.layout.HSplit.) """
+class TabNode:
+    pass
 
 
-class VSplit(list):
-    """ Horizontal split. """
-
-
-Split: TypeAlias = HSplit | VSplit
-
-
-class Window(object):
+class TabWindow(TabNode):
     """
     Editor window: a window can show any open buffer.
     """
@@ -31,19 +23,33 @@ class Window(object):
         return '%s(editor_buffer=%r)' % (self.__class__.__name__, self.editor_buffer)
 
 
+class TabSplit(TabNode):
+    def __init__(self, *window: TabWindow) -> None:
+        super().__init__()
+        self.children: List[TabNode] = list(window)
+
+
+class TabHSplit(TabSplit):
+    """ Horizontal split. (This is a higher level split than
+    prompt_toolkit.layout.HSplit.) """
+
+
+class TabVSplit(TabSplit):
+    """ Horizontal split. """
+
+
 class TabPage(object):
     """
     Tab page. Container for windows.
     """
 
-    def __init__(self, window: Window):
-        assert isinstance(window, Window)
-        self.root = VSplit([window])
+    def __init__(self, window: TabWindow):
+        self.root = TabVSplit(window)
 
         # Keep track of which window is focusesd in this tab.
-        self.active_window: Optional[Window] = window
+        self.active_window: Optional[TabWindow] = window
 
-    def windows(self) -> List[Window]:
+    def windows(self) -> List[TabWindow]:
         """ Return a list of all windows in this tab page. """
         return [window for _, window in self._walk_through_windows()]
 
@@ -61,12 +67,12 @@ class TabPage(object):
         """
         Yields (Split, Window) tuples.
         """
-        def walk(split: Split) -> Iterable[Tuple[Split, Window]]:
-            for c in split:
-                if isinstance(c, (HSplit, VSplit)):
+        def walk(split: TabSplit) -> Iterable[Tuple[TabSplit, TabWindow]]:
+            for c in split.children:
+                if isinstance(c, (TabHSplit, TabVSplit)):
                     for i in walk(c):
                         yield i
-                elif isinstance(c, Window):
+                elif isinstance(c, TabWindow):
                     yield split, c
 
         return walk(self.root)
@@ -75,22 +81,22 @@ class TabPage(object):
         """
         Yields (parent_split, child_plit) tuples.
         """
-        def walk(split: Split) -> Iterable[Tuple[Split, Split]]:
-            for c in split:
-                if isinstance(c, (HSplit, VSplit)):
+        def walk(split: TabSplit) -> Iterable[Tuple[TabSplit, TabSplit]]:
+            for c in split.children:
+                if isinstance(c, (TabHSplit, TabVSplit)):
                     yield split, c
                     for i in walk(c):
                         yield i
 
         return walk(self.root)
 
-    def _get_active_split(self) -> Split:
+    def _get_active_split(self) -> TabSplit:
         for split, window in self._walk_through_windows():
             if window == self.active_window:
                 return split
         raise Exception('active_window not found. Something is wrong.')
 
-    def _get_split_parent(self, split) -> Optional[Split]:
+    def _get_split_parent(self, split) -> Optional[TabSplit]:
         for parent, child in self._walk_through_splits():
             if child == split:
                 return parent
@@ -100,21 +106,22 @@ class TabPage(object):
         Split horizontal or vertical.
         (when editor_buffer is None, show the current buffer there as well.)
         """
+        assert(self.active_window)
         if editor_buffer is None:
-            assert(self.active_window)
             editor_buffer = self.active_window.editor_buffer
         assert(editor_buffer)
 
         active_split = self._get_active_split()
-        index = active_split.index(self.active_window)
-        new_window = Window(editor_buffer)
+        index = active_split.children.index(self.active_window)
+        new_window = TabWindow(editor_buffer)
 
         if isinstance(active_split, split_cls):
             # Add new window to active split.
-            active_split.insert(index, new_window)
+            active_split.children.insert(index, new_window)
         else:
             # Split in the other direction.
-            active_split[index] = split_cls([active_split[index], new_window])
+            active_split.children[index] = split_cls(
+                [active_split.children[index], new_window])
 
         # Focus new window.
         self.active_window = new_window
@@ -123,13 +130,13 @@ class TabPage(object):
         """
         Split active window horizontally.
         """
-        self._split(HSplit, editor_buffer)
+        self._split(TabHSplit, editor_buffer)
 
     def vsplit(self, editor_buffer: Optional[EditorBuffer] = None):
         """
         Split active window vertically.
         """
-        self._split(VSplit, editor_buffer)
+        self._split(TabVSplit, editor_buffer)
 
     def show_editor_buffer(self, editor_buffer: EditorBuffer):
         """
@@ -147,7 +154,7 @@ class TabPage(object):
             if window.editor_buffer == editor_buffer:
                 self._close_window(window)
 
-    def _close_window(self, window: Window):
+    def _close_window(self, window: TabWindow):
         """
         Close this window.
         """
@@ -165,14 +172,16 @@ class TabPage(object):
         active_split = self._get_active_split()
 
         # First remove the active window from its split.
-        index = active_split.index(self.active_window)
-        del active_split[index]
+        assert(self.active_window)
+        index = active_split.children.index(self.active_window)
+        del active_split.children[index]
 
         # Move focus.
-        if len(active_split):
-            new_active_window = active_split[max(0, index - 1)]
-            while isinstance(new_active_window, (HSplit, VSplit)):
-                new_active_window = new_active_window[0]
+        if len(active_split.children):
+            new_active_window = active_split.children[max(0, index - 1)]
+            while isinstance(new_active_window, (TabHSplit, TabVSplit)):
+                new_active_window = new_active_window.children[0]
+            assert(isinstance(new_active_window, TabWindow))
             self.active_window = new_active_window
         else:
             self.active_window = None  # No windows left.
@@ -180,11 +189,11 @@ class TabPage(object):
         # When there is exactly on item left, move this back into the parent
         # split. (We don't want to keep a split with one item around -- exept
         # for the root.)
-        if len(active_split) == 1 and active_split != self.root:
+        if len(active_split.children) == 1 and active_split != self.root:
             parent = self._get_split_parent(active_split)
             assert(parent)
-            index = parent.index(active_split)
-            parent[index] = active_split[0]
+            index = parent.children.index(active_split)
+            parent.children[index] = active_split.children[0]
 
     def cycle_focus(self):
         """

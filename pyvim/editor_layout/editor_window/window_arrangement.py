@@ -8,7 +8,7 @@ represents the rendering, while this is more specific for the editor itself.
 from typing import List, Optional
 from six import string_types
 from .editor_buffer import EditorBuffer
-from .tab_page import TabPage, Window, VSplit, HSplit
+from . import tab_page
 import prompt_toolkit.layout.containers
 
 __all__ = (
@@ -18,12 +18,12 @@ __all__ = (
 
 class WindowArrangement(object):
     def __init__(self):
-        self.tab_pages: List[TabPage] = []
+        self.tab_pages: List[tab_page.TabPage] = []
         self.active_tab_index: Optional[int] = None
         self.editor_buffers: List[EditorBuffer] = []
 
     @property
-    def active_tab(self) -> Optional[TabPage]:
+    def active_tab(self) -> Optional[tab_page.TabPage]:
         """ The active TabPage or None. """
         if self.active_tab_index is not None:
             return self.tab_pages[self.active_tab_index]
@@ -106,7 +106,7 @@ class WindowArrangement(object):
         """
         Close all other windows, except the current one.
         """
-        self.tab_pages = [TabPage(self.active_tab.active_window)]
+        self.tab_pages = [tab_page.TabPage(self.active_tab.active_window)]
         self.active_tab_index = 0
 
     def cycle_focus(self):
@@ -197,8 +197,8 @@ class WindowArrangement(object):
 
         # When there are no tabs/windows yet, create one for this buffer.
         if self.tab_pages == []:
-            from .tab_page import TabPage, Window
-            self.tab_pages.append(TabPage(Window(editor_buffer)))
+            self.tab_pages.append(tab_page.TabPage(
+                tab_page.TabWindow(editor_buffer)))
             self.active_tab_index = 0
 
         # To be shown?
@@ -305,7 +305,7 @@ class WindowArrangement(object):
                 eb = self.editor_buffers[new_index]
 
                 # Create a window for this buffer.
-                self.tab_pages.append(TabPage(Window(eb)))
+                self.tab_pages.append(tab_page.TabPage(tab_page.Window(eb)))
                 self.active_tab_index = 0
             else:
                 # Create a new buffer. (This will also create the window
@@ -318,7 +318,8 @@ class WindowArrangement(object):
         """
         eb = self._get_or_create_editor_buffer(location)
 
-        self.tab_pages.insert(self.active_tab_index + 1, TabPage(Window(eb)))
+        self.tab_pages.insert(self.active_tab_index + 1,
+                              tab_page.TabPage(tab_page.Window(eb)))
         self.active_tab_index += 1
 
     def list_open_buffers(self):
