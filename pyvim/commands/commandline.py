@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import pathlib
 from prompt_toolkit.application.current import get_app
 import prompt_toolkit.layout.containers
@@ -8,6 +10,7 @@ import prompt_toolkit.buffer
 import prompt_toolkit.key_binding.vi_state
 import prompt_toolkit.history
 from .lexer import create_command_lexer
+logger = logging.getLogger(__name__)
 
 
 class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
@@ -26,8 +29,8 @@ class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
             self.leave_command_mode(append_to_history=True)
 
             # Execute command.
-            from .handler import handle_command
-            handle_command(text)
+            from pyvim.editor import get_editor
+            get_editor().enqueue(text)
 
             return False
 

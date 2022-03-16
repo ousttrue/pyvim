@@ -1,6 +1,9 @@
-
+import logging
+import asyncio
 from .grammar import COMMAND_GRAMMAR
 from .commands import call_command_handler, has_command_handler, substitute
+logger = logging.getLogger(__name__)
+
 
 __all__ = (
     'handle_command',
@@ -60,4 +63,17 @@ def _go_to_line(editor, line):
     Move cursor to this line in the current buffer.
     """
     b = editor.application.current_buffer
-    b.cursor_position = b.document.translate_row_col_to_index(max(0, int(line) - 1), 0)
+    b.cursor_position = b.document.translate_row_col_to_index(
+        max(0, int(line) - 1), 0)
+
+
+async def worker(queue: asyncio.Queue):
+    logger.info('start worker')
+    while True:
+        value = await queue.get()
+        if value is None:
+            logger.info('exit worker')
+            break
+
+        logger.debug(value)
+        handle_command(value)
