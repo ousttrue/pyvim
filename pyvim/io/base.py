@@ -1,13 +1,13 @@
-
+import pathlib
 from abc import ABCMeta, abstractmethod
-import six
+
 
 __all__ = (
     'EditorIO',
 )
 
 
-class EditorIO(six.with_metaclass(ABCMeta, object)):
+class EditorIO(metaclass=ABCMeta):
     """
     The I/O interface for editor buffers.
 
@@ -16,14 +16,14 @@ class EditorIO(six.with_metaclass(ABCMeta, object)):
     ending with .gz.
     """
     @abstractmethod
-    def can_open_location(cls, location: str):
+    def can_open_location(cls, location: pathlib.Path):
         """
         Return True when this I/O implementation is able to handle this `location`.
         """
         return False
 
     @abstractmethod
-    def exists(self, location: str):
+    def exists(self, location: pathlib.Path):
         """
         Return whether this location exists in this storage..
         (If not, this is a new file.)
@@ -31,21 +31,21 @@ class EditorIO(six.with_metaclass(ABCMeta, object)):
         return True
 
     @abstractmethod
-    def read(self, location: str):
+    def read(self, location: pathlib.Path):
         """
         Read file for storage. Returns (text, encoding tuple.)
         Can raise IOError.
         """
 
     @abstractmethod
-    def write(self, location: str, data, encoding='utf-8'):
+    def write(self, location: pathlib.Path, data, encoding='utf-8'):
         """
         Write file to storage.
         Can raise IOError.
         """
 
-    def isdir(self, location: str):
+    def isdir(self, location: pathlib.Path):
         """
         Return whether this location is a directory.
         """
-        return False
+        return location.is_dir()

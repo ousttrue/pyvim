@@ -1,5 +1,6 @@
+from typing import Optional
 import logging
-from six import string_types
+import pathlib
 import os
 from asyncio import get_event_loop
 from prompt_toolkit.application.current import get_app
@@ -24,11 +25,8 @@ class EditorBuffer(object):
     etc... This wrapper contains the necessary data for the editor.
     """
 
-    def __init__(self, location=None, text=None):
-        assert location is None or isinstance(location, string_types)
-        assert text is None or isinstance(text, string_types)
+    def __init__(self, location: Optional[pathlib.Path] = None, text: Optional[str] = None):
         assert not (location and text)
-        logger.info(location or text)
 
         self.location = location
         self.encoding = 'utf-8'
@@ -57,6 +55,15 @@ class EditorBuffer(object):
         # List of reporting errors.
         self.report_errors = []
         self._reporter_is_running = False
+
+        from pyvim.event_queue import enqueue_new_buffer
+        enqueue_new_buffer(self)
+
+    @property
+    def filetype(self) -> str:
+        if not self.location:
+            return ''
+        return self.location.suffix
 
     @property
     def has_unsaved_changes(self):

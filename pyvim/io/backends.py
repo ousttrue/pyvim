@@ -1,9 +1,7 @@
-
-import codecs
+import pathlib
 import gzip
 import os
 import six
-from six.moves import urllib
 
 from .base import EditorIO
 
@@ -11,7 +9,7 @@ __all__ = (
     'FileIO',
     'GZipFileIO',
     'DirectoryIO',
-    'HttpIO',
+    # 'HttpIO',
 )
 
 
@@ -22,23 +20,22 @@ class FileIO(EditorIO):
     """
     I/O backend for the native file system.
     """
-    def can_open_location(cls, location):
+    def can_open_location(cls, location: pathlib.Path):
         # We can handle all local files.
-        return '://' not in location and not os.path.isdir(location)
+        return location.is_file()
 
-    def exists(self, location):
-        return os.path.exists(os.path.expanduser(location))
+    def exists(self, location: pathlib.Path):
+        return location.is_file()
 
-    def read(self, location):
+    def read(self, location: pathlib.Path):
         """
         Read file from disk.
         """
-        location = os.path.expanduser(location)
 
         # Try to open this file, using different encodings.
         for e in ENCODINGS:
             try:
-                with codecs.open(location, 'r', e) as f:
+                with location.open('r') as f:
                     return f.read(), e
             except UnicodeDecodeError:
                 pass  # Try next codec.
@@ -46,13 +43,11 @@ class FileIO(EditorIO):
         # Unable to open.
         raise Exception('Unable to open file: %r' % location)
 
-    def write(self, location, text, encoding):
+    def write(self, location: pathlib.Path, text, encoding):
         """
         Write file to disk.
         """
-        location = os.path.expanduser(location)
-
-        with codecs.open(location, 'w', encoding) as f:
+        with location.open('w', encoding=encoding) as f:
             f.write(text)
 
 
@@ -64,7 +59,7 @@ class GZipFileIO(EditorIO):
     The read and write call will decompress and compress transparently.
     """
     def can_open_location(cls, location):
-        return FileIO().can_open_location(location) and location.endswith('.gz')
+        return FileIO().can_open_location(location) and location.suffix == '.gz'
 
     def exists(self, location):
         return FileIO().exists(location)
@@ -90,12 +85,12 @@ class DirectoryIO(EditorIO):
     """
     Create a textual listing of the directory content.
     """
-    def can_open_location(cls, location):
+    def can_open_location(cls, location: pathlib.Path):
         # We can handle all local directories.
-        return '://' not in location and os.path.isdir(location)
+        return location.is_dir()
 
-    def exists(self, location):
-        return os.path.isdir(location)
+    def exists(self, location: pathlib.Path):
+        return location.is_dir()
 
     def read(self, directory):
         # Read content.
@@ -134,26 +129,26 @@ class DirectoryIO(EditorIO):
         return True
 
 
-class HttpIO(EditorIO):
-    """
-    I/O backend that reads from HTTP.
-    """
-    def can_open_location(cls, location):
-        # We can handle all local directories.
-        return location.startswith('http://') or location.startswith('https://')
+# class HttpIO(EditorIO):
+#     """
+#     I/O backend that reads from HTTP.
+#     """
+#     def can_open_location(cls, location):
+#         # We can handle all local directories.
+#         return location.startswith('http://') or location.startswith('https://')
 
-    def exists(self, location):
-        return NotImplemented  # We don't know.
+#     def exists(self, location):
+#         return NotImplemented  # We don't know.
 
-    def read(self, location):
-        # Do Http request.
-        bytes = urllib.request.urlopen(location).read()
+#     def read(self, location):
+#         # Do Http request.
+#         bytes = urllib.request.urlopen(location).read()
 
-        # Return decoded.
-        return _auto_decode(bytes)
+#         # Return decoded.
+#         return _auto_decode(bytes)
 
-    def write(self, location, text, encoding):
-        raise NotImplementedError('Cannot write to HTTP.')
+#     def write(self, location, text, encoding):
+#         raise NotImplementedError('Cannot write to HTTP.')
 
 
 def _auto_decode(data):

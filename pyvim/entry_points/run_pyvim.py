@@ -10,6 +10,7 @@ Options:
     -O           : Split vertically.
     -u <pyvimrc> : Use this .pyvimrc file instead.
 """
+import pathlib
 import docopt
 import os
 import logging
@@ -23,7 +24,7 @@ __all__ = (
 def run():
     logging.basicConfig(level=logging.DEBUG)
     a = docopt.docopt(__doc__)  # type: ignore
-    locations = a['<location>']
+    locations = [pathlib.Path(x).absolute() for x in a['<location>']]
     in_tab_pages = a['-p']
     hsplit = a['-o']
     vsplit = a['-O']

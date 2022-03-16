@@ -7,9 +7,8 @@ Usage::
     e = Editor(files_to_edit)
     e.run()  # Runs the event loop, starts interaction.
 """
-from typing import Optional
+from typing import Optional, List
 import logging
-import asyncio
 import os
 import pathlib
 import pygments.util
@@ -27,6 +26,7 @@ import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
 from .commands.commandline import CommandLine
 from .editor_layout.editor_window.window_arrangement import WindowArrangement
+from .editor_layout.editor_window.editor_buffer import EditorBuffer
 logger = logging.getLogger(__name__)
 
 
@@ -63,10 +63,10 @@ class _Editor(object):
         self.state = EditorState(get_editor_style_by_name('vim'))
 
         # I/O backends.
-        from .io import FileIO, DirectoryIO, HttpIO, GZipFileIO
+        from .io import FileIO, DirectoryIO, GZipFileIO
         self.io_backends = [
             DirectoryIO(),
-            HttpIO(),
+            # HttpIO(),
             GZipFileIO(),  # Should come before FileIO.
             FileIO(),
         ]
@@ -116,7 +116,7 @@ class _Editor(object):
         from .key_bindings import create_key_bindings
         create_key_bindings()
 
-    def load_initial_files(self, locations, in_tab_pages=False, hsplit=False, vsplit=False):
+    def load_initial_files(self, locations: List[pathlib.Path], in_tab_pages=False, hsplit=False, vsplit=False):
         """
         Load a list of files.
         """
@@ -284,6 +284,13 @@ class _Editor(object):
                 if value:
                     self.state = self.state._replace(
                         colorcolumn=[int(v) for v in value.split(',') if v.isdigit()])
+
+    def launch(self, eb: EditorBuffer):
+        ft = eb.filetype
+        if ft == '.py':
+            logger.info('launch lsp for python')
+        else:
+            logger.warn(f'unknown file type: {ft}')
 
 
 EDITOR = _Editor()

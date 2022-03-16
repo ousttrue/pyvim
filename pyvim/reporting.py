@@ -9,9 +9,9 @@ Usage::
 
     errors = report('location.py', Document('file content'))
 """
+import pathlib
 import pyflakes.api
 import string
-import six
 
 __all__ = (
     'report',
@@ -22,6 +22,7 @@ class ReporterError(object):
     """
     Error found by a reporter.
     """
+
     def __init__(self, lineno, start_column, end_column, formatted_text):
         self.lineno = lineno  # Zero based line number.
         self.start_column = start_column
@@ -29,16 +30,14 @@ class ReporterError(object):
         self.formatted_text = formatted_text
 
 
-def report(location, document):
+def report(location: pathlib.Path, document):
     """
     Run reporter on document and return list of ReporterError instances.
     (Depending on the location it will or won't run anything.)
 
     Returns a list of `ReporterError`.
     """
-    assert isinstance(location, six.string_types)
-
-    if location.endswith('.py'):
+    if location.suffix == '.py':
         return report_pyflakes(document)
     else:
         return []
@@ -64,7 +63,8 @@ def report_pyflakes(document):
 
     def message_to_reporter_error(message):
         """ Turn pyflakes message into ReporterError. """
-        start_index = document.translate_row_col_to_index(message.lineno - 1, message.col)
+        start_index = document.translate_row_col_to_index(
+            message.lineno - 1, message.col)
         end_index = start_index
         while end_index < len(document.text) and document.text[end_index] in WORD_CHARACTERS:
             end_index += 1
@@ -82,6 +82,7 @@ class _FlakesReporter(object):
     """
     Reporter class to be passed to pyflakes.api.check.
     """
+
     def __init__(self):
         self.messages = []
 

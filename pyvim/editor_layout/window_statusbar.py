@@ -53,7 +53,7 @@ class WindowStatusBar(prompt_toolkit.widgets.FormattedTextToolbar):
             return ''.join([
                 ' ',
                 recording(),
-                (editor_buffer.location or ''),
+                (str(editor_buffer.location) or ''),
                 (' [New File]' if editor_buffer.is_new else ''),
                 ('*' if editor_buffer.has_unsaved_changes else ''),
                 (' '),

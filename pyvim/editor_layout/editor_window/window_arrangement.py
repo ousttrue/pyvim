@@ -5,6 +5,7 @@ This contains the data structure for the tab pages with their windows and
 buffers. It's not the same as a `prompt-toolkit` layout. The latter directly
 represents the rendering, while this is more specific for the editor itself.
 """
+import pathlib
 from typing import List, Optional
 from six import string_types
 import prompt_toolkit.layout.containers
@@ -45,7 +46,7 @@ class WindowArrangement(object):
         assert(self.active_window.pt_window)
         return self.active_window.pt_window
 
-    def get_editor_buffer_for_location(self, location: str):
+    def get_editor_buffer_for_location(self, location: pathlib.Path):
         """
         Return the `EditorBuffer` for this location.
         When this file was not yet loaded, return None
@@ -74,7 +75,7 @@ class WindowArrangement(object):
         # Clean up buffers.
         self._auto_close_new_empty_buffers()
 
-    def hsplit(self, location=None, new=False, text=None):
+    def hsplit(self, location: Optional[pathlib.Path] = None, new=False, text=None):
         """ Split horizontally. """
         assert location is None or text is None or new is False  # Don't pass two of them.
 
@@ -85,7 +86,7 @@ class WindowArrangement(object):
             editor_buffer = None
         self.active_tab.hsplit(editor_buffer)
 
-    def vsplit(self, location=None, new=False, text=None):
+    def vsplit(self, location: Optional[pathlib.Path] = None, new=False, text=None):
         """ Split vertically. """
         assert location is None or text is None or new is False  # Don't pass two of them.
 
@@ -202,41 +203,45 @@ class WindowArrangement(object):
         # Start reporter.
         editor_buffer.run_reporter()
 
-    def _get_or_create_editor_buffer(self, location=None, text=None):
+    def _get_or_create_editor_buffer(self, location: Optional[pathlib.Path] = None, text=None):
         """
         Given a location, return the `EditorBuffer` instance that we have if
         the file is already open, or create a new one.
 
         When location is None, this creates a new buffer.
         """
-        assert location is None or text is None  # Don't pass two of them.
-        assert location is None or isinstance(location, string_types)
+        # assert location is None or text is None  # Don't pass two of them.
+        # assert location is None or isinstance(location, pathlib.Path)
+        match location:
+            case pathlib.Path():
+                # When a location is given, first look whether the file was already
+                # opened.
+                eb = self.get_editor_buffer_for_location(location)
 
-        if location is None:
-            # Create and add an empty EditorBuffer
-            from pyvim.editor import get_editor
-            editor = get_editor()
-            eb = EditorBuffer(editor, text=text)
-            self._add_editor_buffer(eb)
+                # Not found? Create one.
+                if eb is None:
+                    # Create and add EditorBuffer
+                    eb = EditorBuffer(location)
+                    self._add_editor_buffer(eb)
 
-            return eb
-        else:
-            # When a location is given, first look whether the file was already
-            # opened.
-            eb = self.get_editor_buffer_for_location(location)
+                    return eb
+                else:
+                    # Found! Return it.
+                    return eb
 
-            # Not found? Create one.
-            if eb is None:
-                # Create and add EditorBuffer
-                eb = EditorBuffer(location)
+            case None:
+                # Create and add an empty EditorBuffer
+                from pyvim.editor import get_editor
+                editor = get_editor()
+                eb = EditorBuffer(text=text)
                 self._add_editor_buffer(eb)
 
                 return eb
-            else:
-                # Found! Return it.
-                return eb
 
-    def open_buffer(self, location=None, show_in_current_window=False):
+            case _:
+                raise RuntimeError()
+
+    def open_buffer(self, location: Optional[pathlib.Path] = None, show_in_current_window=False):
         """
         Open/create a file, load it, and show it in a new buffer.
         """
