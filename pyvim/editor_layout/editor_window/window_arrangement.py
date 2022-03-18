@@ -8,7 +8,6 @@ represents the rendering, while this is more specific for the editor itself.
 import pathlib
 from typing import List, Optional
 from six import string_types
-import prompt_toolkit.layout.containers
 from .editor_buffer import EditorBuffer
 from .openbuffer_info import OpenBufferInfo
 from . import tab_page
@@ -40,12 +39,6 @@ class WindowArrangement(object):
         """ The active EditorBuffer or None. """
         return self.active_window.editor_buffer
 
-    @property
-    def active_pt_window(self) -> prompt_toolkit.layout.containers.Window:
-        " The active prompt_toolkit layout Window. "
-        assert(self.active_window.pt_window)
-        return self.active_window.pt_window
-
     def get_editor_buffer_for_location(self, location: pathlib.Path):
         """
         Return the `EditorBuffer` for this location.
@@ -68,6 +61,7 @@ class WindowArrangement(object):
         """
         Close active tab.
         """
+        assert(isinstance(self.active_tab_index, int))
         if len(self.tab_pages) > 1:  # Cannot close last tab.
             del self.tab_pages[self.active_tab_index]
             self.active_tab_index = max(0, self.active_tab_index - 1)
@@ -148,6 +142,7 @@ class WindowArrangement(object):
         """
         Focus the next tab.
         """
+        assert(isinstance(self.active_tab_index, int))
         self.active_tab_index = (
             self.active_tab_index + 1) % len(self.tab_pages)
 
@@ -155,6 +150,7 @@ class WindowArrangement(object):
         """
         Focus the previous tab.
         """
+        assert(isinstance(self.active_tab_index, int))
         self.active_tab_index = (self.active_tab_index - 1 +
                                  len(self.tab_pages)) % len(self.tab_pages)
 
@@ -231,8 +227,6 @@ class WindowArrangement(object):
 
             case None:
                 # Create and add an empty EditorBuffer
-                from pyvim.editor import get_editor
-                editor = get_editor()
                 eb = EditorBuffer(text=text)
                 self._add_editor_buffer(eb)
 
@@ -275,6 +269,7 @@ class WindowArrangement(object):
         buffer, they are closed as well. When no windows are left, the previous
         buffer or an empty buffer is shown.
         """
+        assert(isinstance(self.active_tab_index, int))
         eb = self.active_editor_buffer
 
         # Remove this buffer.
@@ -317,6 +312,7 @@ class WindowArrangement(object):
         """
         Create a new tab page.
         """
+        assert(isinstance(self.active_tab_index, int))
         eb = self._get_or_create_editor_buffer(location)
 
         self.tab_pages.insert(self.active_tab_index + 1,

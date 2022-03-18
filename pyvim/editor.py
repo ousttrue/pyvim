@@ -195,8 +195,9 @@ class _Editor(object):
 
         # Make sure that the focus stack of prompt-toolkit has the current
         # page.
-        window = self.window_arrangement.active_pt_window
-        if window:
+        tab_window = self.window_arrangement.active_window
+        if tab_window:
+            window = self.editor_layout.editor_root.get_window(tab_window.editor_buffer)
             self.application.layout.focus(window)
 
     def show_help(self):

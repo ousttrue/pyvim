@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union, Dict
 import pathlib
 import sys
 from functools import partial
@@ -60,10 +60,10 @@ def create_buffer_control(search_control, editor_buffer: EditorBuffer):
         prompt_toolkit.layout.processors.HighlightSelectionProcessor(),
         prompt_toolkit.layout.processors.ConditionalProcessor(
             prompt_toolkit.layout.processors.HighlightSearchProcessor(),
-            prompt_toolkit.filters.Condition(lambda: editor.highlight_search)),
+            prompt_toolkit.filters.Condition(lambda: editor.state.highlight_search)),
         prompt_toolkit.layout.processors.ConditionalProcessor(
             prompt_toolkit.layout.processors.HighlightIncrementalSearchProcessor(),
-            prompt_toolkit.filters.Condition(lambda: editor.highlight_search) & preview_search),
+            prompt_toolkit.filters.Condition(lambda: editor.state.highlight_search) & preview_search),
         prompt_toolkit.layout.processors.HighlightMatchingBracketProcessor(),
         prompt_toolkit.layout.processors.DisplayMultipleCursors(),
     ]
@@ -79,70 +79,74 @@ def create_buffer_control(search_control, editor_buffer: EditorBuffer):
         focus_on_click=True)
 
 
-def create_window_frame(search_control, editor_buffer: EditorBuffer) -> Tuple[prompt_toolkit.layout.containers.HSplit, prompt_toolkit.layout.containers.Window]:
-    """
-    Create a Window for the buffer, with underneat a status bar.
-    """
-    @prompt_toolkit.filters.Condition
-    def wrap_lines():
-        from ...editor import get_editor
-        editor = get_editor()
-        return editor.wrap_lines
-
-    from ...editor import get_editor
-    editor = get_editor()
-
-    def get_line_prefix(buffer, line_number, wrap_count):
-        if wrap_count > 0:
-            result = []
-
-            # Add 'breakindent' prefix.
+class EditorWindow:
+    def __init__(self, search_control, editor_buffer: EditorBuffer):
+        """
+        Create a Window for the buffer, with underneat a status bar.
+        """
+        @prompt_toolkit.filters.Condition
+        def wrap_lines():
             from ...editor import get_editor
             editor = get_editor()
-            if editor.break_indent:
-                line = buffer.document.lines[line_number]
-                prefix = line[:len(line) - len(line.lstrip())]
-                result.append(('', prefix))
+            return editor.wrap_lines
 
-            # Add softwrap mark.
-            result.append(('class:soft-wrap', '...'))
-            return result
-        return ''
+        from ...editor import get_editor
+        editor = get_editor()
 
-    window = prompt_toolkit.layout.Window(
-        create_buffer_control(search_control, editor_buffer),
-        allow_scroll_beyond_bottom=True,
-        scroll_offsets=prompt_toolkit.layout.ScrollOffsets(
-            left=0, right=0,
-            top=(lambda: editor.scroll_offset),
-            bottom=(lambda: editor.scroll_offset)),
-        wrap_lines=wrap_lines,
-        left_margins=[prompt_toolkit.layout.ConditionalMargin(
-            margin=prompt_toolkit.layout.NumberedMargin(
-                display_tildes=True,
-                relative=prompt_toolkit.filters.Condition(lambda: editor.state.relative_number)),
-            filter=prompt_toolkit.filters.Condition(lambda: editor.state.show_line_numbers))],
-        cursorline=prompt_toolkit.filters.Condition(
-            lambda: editor.state.cursorline),
-        cursorcolumn=prompt_toolkit.filters.Condition(
-            lambda: editor.state.cursorcolumn),
-        colorcolumns=(
-            lambda: [prompt_toolkit.layout.ColorColumn(pos) for pos in editor.state.colorcolumn]),
-        ignore_content_width=True,
-        ignore_content_height=True,
-        get_line_prefix=partial(get_line_prefix, editor_buffer.buffer))
+        def get_line_prefix(buffer, line_number, wrap_count):
+            if wrap_count > 0:
+                result = []
 
-    from ..window_statusbar import WindowStatusBar
-    from ..window_statusbar_ruler import WindowStatusBarRuler
+                # Add 'breakindent' prefix.
+                from ...editor import get_editor
+                editor = get_editor()
+                if editor.break_indent:
+                    line = buffer.document.lines[line_number]
+                    prefix = line[:len(line) - len(line.lstrip())]
+                    result.append(('', prefix))
 
-    return prompt_toolkit.layout.HSplit([
-        window,
-        prompt_toolkit.layout.VSplit([
-            WindowStatusBar(editor, editor_buffer),
-            WindowStatusBarRuler(editor, window,
-                                 editor_buffer.buffer),
-        ], width=prompt_toolkit.layout.Dimension()),  # Ignore actual status bar width.
-    ]), window
+                # Add softwrap mark.
+                result.append(('class:soft-wrap', '...'))
+                return result
+            return ''
+
+        self.window = prompt_toolkit.layout.Window(
+            create_buffer_control(search_control, editor_buffer),
+            allow_scroll_beyond_bottom=True,
+            scroll_offsets=prompt_toolkit.layout.ScrollOffsets(
+                left=0, right=0,
+                top=(lambda: editor.scroll_offset),
+                bottom=(lambda: editor.scroll_offset)),
+            wrap_lines=wrap_lines,
+            left_margins=[prompt_toolkit.layout.ConditionalMargin(
+                margin=prompt_toolkit.layout.NumberedMargin(
+                    display_tildes=True,
+                    relative=prompt_toolkit.filters.Condition(lambda: editor.state.relative_number)),
+                filter=prompt_toolkit.filters.Condition(lambda: editor.state.show_line_numbers))],
+            cursorline=prompt_toolkit.filters.Condition(
+                lambda: editor.state.cursorline),
+            cursorcolumn=prompt_toolkit.filters.Condition(
+                lambda: editor.state.cursorcolumn),
+            colorcolumns=(
+                lambda: [prompt_toolkit.layout.ColorColumn(pos) for pos in editor.state.colorcolumn]),
+            ignore_content_width=True,
+            ignore_content_height=True,
+            get_line_prefix=partial(get_line_prefix, editor_buffer.buffer))
+
+        from ..window_statusbar import WindowStatusBar
+        from ..window_statusbar_ruler import WindowStatusBarRuler
+
+        self.container = prompt_toolkit.layout.HSplit([
+            self.window,
+            prompt_toolkit.layout.VSplit([
+                WindowStatusBar(editor, editor_buffer),
+                WindowStatusBarRuler(editor, self.window,
+                                     editor_buffer.buffer),
+            ], width=prompt_toolkit.layout.Dimension()),  # Ignore actual status bar width.
+        ])
+
+    def __pt_container__(self) -> prompt_toolkit.layout.Container:
+        return self.container
 
 
 class EditorRoot:
@@ -153,7 +157,7 @@ class EditorRoot:
         # the layout is updated. (We don't want to create new frames on every
         # update call, because that way, we would loose some state, like the
         # vertical scroll offset.)
-        self._frames = {}
+        self._frames: Dict[EditorBuffer, EditorWindow] = {}
 
         from .window_arrangement import WindowArrangement
         self.window_arrangement = WindowArrangement()
@@ -201,6 +205,9 @@ class EditorRoot:
     def __pt_container__(self):
         return self.container
 
+    def get_window(self, eb: EditorBuffer) -> prompt_toolkit.layout.Window:
+        return self._frames[eb].window
+
     def update(self):
         """
         Update layout to match the layout as described in the
@@ -211,23 +218,17 @@ class EditorRoot:
         existing_frames = self._frames
         self._frames = {}
 
-        from . import window_arrangement
-
         def create_layout_from_node(node) -> Union[prompt_toolkit.layout.containers.Window, prompt_toolkit.layout.containers.HSplit, prompt_toolkit.layout.containers.VSplit]:
             from . import tab_page
             if isinstance(node, tab_page.TabWindow):
                 # Create frame for Window, or reuse it, if we had one already.
-                key = (node, node.editor_buffer)
-                frame = existing_frames.get(key)
-                if frame is None:
-                    frame, pt_window = create_window_frame(
+                editor_window = existing_frames.get(node.editor_buffer)
+                if not editor_window:
+                    editor_window = EditorWindow(
                         self.searchline.search_control, node.editor_buffer)
 
-                    # Link layout Window to arrangement.
-                    node.pt_window = pt_window
-
-                self._frames[key] = frame
-                return frame
+                self._frames[node.editor_buffer] = editor_window
+                return editor_window.window
 
             if isinstance(node, tab_page.TabVSplit):
                 def get_vertical_border_char():
