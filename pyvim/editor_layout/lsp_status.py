@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 import logging
 from prompt_toolkit.application.current import get_app
 import prompt_toolkit.layout
@@ -10,13 +10,13 @@ STYLE = 'bg:#DDDDDD #000000'
 
 class LspStatus:
     def __init__(self) -> None:
-        self.text = [('', 'lsp')]
         self.controller = prompt_toolkit.layout.controls.FormattedTextControl(
-            lambda: self.text)
+            self.get_text)
         self.container = prompt_toolkit.layout.Window(
             self.controller, height=4, style=STYLE)
 
-        self.lsp: Dict[str, lsp_client.LSPClient] = {}
+        self._lsp: Dict[str, lsp_client.LSPClient] = {}
+        self._current: Optional[lsp_client.LSPClient] = None
 
         from ..event_dispatcher import DISPATCHER, EventType
         DISPATCHER.register(EventType.NewEditorBuffer, self.launch)
@@ -26,16 +26,21 @@ class LspStatus:
     def __pt_container__(self) -> prompt_toolkit.layout.Container:
         return self.container
 
+    def get_text(self):
+        if not self._current:
+            return ''
+        return [('', 'lsp ')] + self._current.get_text()
+
     def launch(self, eb: EditorBuffer):
         ft = eb.filetype
-        if ft == '.py':
-            if ft not in self.lsp:
-                logger.info('launch lsp for python')
-                loop = get_app().loop
-                assert(loop)
-                assert(eb.location)
-                lsp = lsp_client.LSPClient(loop, eb.location.parent)
-                lsp.launch(lsp_client.PYTHON)
-                self.lsp[ft] = lsp
-        else:
-            logger.warning(f'unknown file type: {ft}')
+        logger.info(f'launch {ft}')
+        assert(eb.location)
+
+        lsp = self._lsp.get(ft)
+        if lsp:
+            return
+
+        lsp = lsp_client.launch(ft, eb.location.parent)
+        if lsp:
+            self._lsp[ft] = lsp
+            self._current = lsp

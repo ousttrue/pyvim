@@ -1,20 +1,29 @@
+from typing import Optional, List, Tuple
 import pathlib
 import asyncio.subprocess
 import asyncio.events
 import logging
 import json
+from prompt_toolkit.application.current import get_app
 from . import protocol
 logger = logging.getLogger(__name__)
 
-PYTHON = pathlib.Path('C:/Python310/Scripts/pyls.exe')
+LSP = {
+    '.py': pathlib.Path('C:/Python310/Scripts/pyls.exe'),
+}
 
 
 class LSPClient:
-    def __init__(self, loop: asyncio.events.AbstractEventLoop, root: pathlib.Path) -> None:
+    def __init__(self, loop: asyncio.events.AbstractEventLoop, ft: str, root: pathlib.Path) -> None:
         self.loop = loop
+        self.ft = ft
         self.proc = None
         self.root = root
         self.request_id = 1
+        self._status = 'launch...'
+
+    def get_text(self) -> List[Tuple[str, str]]:
+        return [('bg:#000000 #888888', ' ' + self.ft + ' '), ('', ' '), ('', self._status)]
 
     def launch(self, path: pathlib.Path, *args):
         self.loop.create_task(self._launch_async(path, *args))
@@ -28,6 +37,7 @@ class LSPClient:
         logger.info(f'launch: {path} {args}')
         self.loop.create_task(self._out_async())
         self.loop.create_task(self._err_async())
+        self._status = 'initialize...'
 
         # initialize
         value = protocol.InitializeParams(
@@ -36,6 +46,7 @@ class LSPClient:
         )
         request = self._make_request("initialize", value)
         await self._request_async(json.dumps(request).encode('utf-8'))
+        self._status = 'initialized'
 
     def _make_request(self, method: str, params) -> protocol.Request:
         request_id = self.request_id
@@ -80,3 +91,15 @@ class LSPClient:
                 break
             l = await self.proc.stderr.readline()
             logger.error(l)
+
+
+def launch(ft: str, workspace) -> Optional[LSPClient]:
+    path = LSP.get(ft)
+    if path:
+        loop = get_app().loop
+        assert(loop)
+        lsp = LSPClient(loop, ft, workspace)
+        lsp.launch(path)
+        return lsp
+    else:
+        logger.warning(f'unknown file type: {ft}')
