@@ -27,7 +27,6 @@ import prompt_toolkit.cursor_shapes
 from .commands.commandline import CommandLine
 from .window_arrangement import WindowArrangement
 from .window_arrangement.editor_buffer import EditorBuffer
-from .lsp import lsp_client
 logger = logging.getLogger(__name__)
 
 
@@ -74,11 +73,6 @@ class _Editor(object):
 
         # Create key bindings registry.
         self.key_bindings = prompt_toolkit.key_binding.KeyBindings()
-
-        self.lsp: Dict[str, lsp_client.LSPClient] = {}
-
-        from .event_dispatcher import DISPATCHER, EventType
-        DISPATCHER.register(EventType.NewEditorBuffer, self.launch)
 
     def layout(self):
         # Ensure config directory exists.
@@ -197,7 +191,8 @@ class _Editor(object):
         # page.
         tab_window = self.window_arrangement.active_window
         if tab_window:
-            window = self.editor_layout.editor_root.window_arrangement.get_window(tab_window.editor_buffer)
+            window = self.editor_layout.editor_root.window_arrangement.get_window(
+                tab_window.editor_buffer)
             self.application.layout.focus(window)
 
     def show_help(self):
@@ -291,20 +286,6 @@ class _Editor(object):
                 if value:
                     self.state = self.state._replace(
                         colorcolumn=[int(v) for v in value.split(',') if v.isdigit()])
-
-    def launch(self, eb: EditorBuffer):
-        ft = eb.filetype
-        if ft == '.py':
-            if ft not in self.lsp:
-                logger.info('launch lsp for python')
-                assert(self.application.loop)
-                assert(eb.location)
-                lsp = lsp_client.LSPClient(
-                    self.application.loop, eb.location.parent)
-                lsp.launch(lsp_client.PYTHON)
-                self.lsp[ft] = lsp
-        else:
-            logger.warning(f'unknown file type: {ft}')
 
 
 EDITOR = _Editor()

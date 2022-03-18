@@ -24,6 +24,7 @@ class EditorLayout(object):
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
         from .logger import LoggerWindow
+        from .lsp_status import LspStatus
 
         self.editor_root = EditorRoot(config_directory)
         editor_layout = prompt_toolkit.layout.FloatContainer(
@@ -42,8 +43,10 @@ class EditorLayout(object):
         )
 
         logger_window = LoggerWindow()
+        self.lsp_status = LspStatus()
         editor_logger = prompt_toolkit.layout.HSplit([
             editor_layout,
+            self.lsp_status,
             logger_window,
         ])
 
