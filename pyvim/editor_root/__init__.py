@@ -9,7 +9,7 @@ from .tabs_control import TabsToolbar
 
 class EditorRoot:
     def __init__(self, config_directory: pathlib.Path) -> None:
-        from .window_arrangement import WindowArrangement
+        from ..window_arrangement import WindowArrangement
         self.window_arrangement = WindowArrangement(config_directory)
 
         from .welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH

@@ -34,7 +34,7 @@ def create_buffer_control(search_control, editor_buffer: EditorBuffer):
     from pyvim.editor import get_editor
     editor = get_editor()
 
-    from .reporting_processor import ReportingProcessor
+    from ..editor_root.reporting_processor import ReportingProcessor
     input_processors = [
         # Processor for visualising spaces. (should come before the
         # selection processor, otherwise, we won't see these spaces
@@ -65,7 +65,7 @@ def create_buffer_control(search_control, editor_buffer: EditorBuffer):
         prompt_toolkit.layout.processors.DisplayMultipleCursors(),
     ]
 
-    from .lexer import DocumentLexer
+    from ..editor_root.lexer import DocumentLexer
     return prompt_toolkit.layout.BufferControl(
         lexer=DocumentLexer(editor_buffer),
         include_default_input_processors=False,
@@ -130,8 +130,8 @@ class EditorWindow:
             ignore_content_height=True,
             get_line_prefix=partial(get_line_prefix, editor_buffer.buffer))
 
-        from .window_statusbar import WindowStatusBar
-        from .window_statusbar_ruler import WindowStatusBarRuler
+        from ..editor_root.window_statusbar import WindowStatusBar
+        from ..editor_root.window_statusbar_ruler import WindowStatusBarRuler
 
         self.container = prompt_toolkit.layout.HSplit([
             self.window,
