@@ -164,9 +164,9 @@ class EditorBuffer(object):
         if self.location is None:
             return '[New file]'
         elif short:
-            return os.path.basename(self.location)
+            return self.location.name
         else:
-            return self.location
+            return str(self.location)
 
     def __repr__(self):
         return '%s(buffer=%r)' % (self.__class__.__name__, self.buffer)

@@ -62,7 +62,7 @@ class BufferListOverlay(prompt_toolkit.layout.containers.ConditionalContainer):
                     True when we should show this entry.
                     """
                     # When the input appears in the location.
-                    if input_params[1] in (info.editor_buffer.location or ''):
+                    if input_params[1] in (str(info.editor_buffer.location) or ''):
                         return True
 
                     # When the input matches this buffer his index number.
