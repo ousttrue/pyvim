@@ -33,7 +33,7 @@ class EditorLayout(object):
                 self.editor_root.commandline,
                 ReportMessageToolbar(self.editor_root.commandline.has_focus),
                 prompt_toolkit.widgets.SystemToolbar(),
-                self.editor_root.searchline,
+                self.editor_root.window_arrangement.searchline,
             ]),
             floats=[
                 prompt_toolkit.layout.Float(right=0, height=1, bottom=0, width=5,

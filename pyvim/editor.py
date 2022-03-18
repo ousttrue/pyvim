@@ -191,13 +191,13 @@ class _Editor(object):
         """
         # After executing a command, make sure that the layout of
         # prompt-toolkit matches our WindowArrangement.
-        self.editor_layout.editor_root.update()
+        self.editor_layout.editor_root.window_arrangement.update()
 
         # Make sure that the focus stack of prompt-toolkit has the current
         # page.
         tab_window = self.window_arrangement.active_window
         if tab_window:
-            window = self.editor_layout.editor_root.get_window(tab_window.editor_buffer)
+            window = self.editor_layout.editor_root.window_arrangement.get_window(tab_window.editor_buffer)
             self.application.layout.focus(window)
 
     def show_help(self):

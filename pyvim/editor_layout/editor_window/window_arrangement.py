@@ -5,12 +5,15 @@ This contains the data structure for the tab pages with their windows and
 buffers. It's not the same as a `prompt-toolkit` layout. The latter directly
 represents the rendering, while this is more specific for the editor itself.
 """
+from typing import List, Optional, Dict, Union
 import pathlib
-from typing import List, Optional
 from six import string_types
+from prompt_toolkit.application.current import get_app
+import prompt_toolkit.layout
 from .editor_buffer import EditorBuffer
 from .openbuffer_info import OpenBufferInfo
 from . import tab_page
+from .editor_window import EditorWindow, _try_char
 
 __all__ = (
     'WindowArrangement',
@@ -18,10 +21,47 @@ __all__ = (
 
 
 class WindowArrangement(object):
-    def __init__(self):
+    '''
+    buffers = [
+        buffer1
+        buffer2
+    ]
+
+    tab
+      tab1
+        root
+          window1-1 -> buffer1
+          window1-2 -> buffer2
+      tab2
+        window2-1 -> buffer1 
+
+    Dict[window, buffer]
+
+    active path: (tabN, v, h, w)
+    '''
+
+    def __init__(self, config_directory: pathlib.Path):
         self.tab_pages: List[tab_page.TabPage] = []
         self.active_tab_index: Optional[int] = None
         self.editor_buffers: List[EditorBuffer] = []
+        # Mapping from (`window_arrangement.Window`, `EditorBuffer`) to a frame
+        # (Layout instance).
+        # We keep this as a cache in order to easily reuse the same frames when
+        # the layout is updated. (We don't want to create new frames on every
+        # update call, because that way, we would loose some state, like the
+        # vertical scroll offset.)
+        self._frames: Dict[EditorBuffer, EditorWindow] = {}
+
+        self.container = prompt_toolkit.layout.VSplit([
+            prompt_toolkit.layout.Window(
+                prompt_toolkit.layout.BufferControl())  # Dummy window
+        ])
+
+        from .searchline import SearchLine
+        self.searchline = SearchLine(config_directory)
+
+    def __pt_container__(self) -> prompt_toolkit.layout.Container:
+        return self.container
 
     @property
     def active_tab(self) -> tab_page.TabPage:
@@ -335,3 +375,48 @@ class WindowArrangement(object):
                 is_visible=(eb in visible_ebs))
 
         return [make_info(i, eb) for i, eb in enumerate(self.editor_buffers)]
+
+    def get_window(self, eb: EditorBuffer) -> prompt_toolkit.layout.Window:
+        return self._frames[eb].window
+
+    def update(self):
+        """
+        Update layout to match the layout as described in the
+        WindowArrangement.
+        """
+
+        # Start with an empty frames list everytime, to avoid memory leaks.
+        existing_frames = self._frames
+        self._frames = {}
+
+        def create_layout_from_node(node) -> Union[prompt_toolkit.layout.containers.Window, prompt_toolkit.layout.containers.HSplit, prompt_toolkit.layout.containers.VSplit]:
+            from . import tab_page
+            if isinstance(node, tab_page.TabWindow):
+                # Create frame for Window, or reuse it, if we had one already.
+                editor_window = existing_frames.get(node.editor_buffer)
+                if not editor_window:
+                    editor_window = EditorWindow(
+                        self.searchline.search_control, node.editor_buffer)
+
+                self._frames[node.editor_buffer] = editor_window
+                return editor_window.window
+
+            if isinstance(node, tab_page.TabVSplit):
+                def get_vertical_border_char():
+                    " Return the character to be used for the vertical border. "
+                    return _try_char('\u2502', '|', get_app().output.encoding())
+
+                return prompt_toolkit.layout.VSplit(
+                    [create_layout_from_node(n) for n in node.children],
+                    padding=1,
+                    padding_char=get_vertical_border_char(),
+                    padding_style='class:frameborder')
+
+            if isinstance(node, tab_page.TabHSplit):
+                return prompt_toolkit.layout.HSplit([create_layout_from_node(n) for n in node.children])
+
+            raise RuntimeError()
+
+        assert(self.active_tab)
+        self.container.children = [create_layout_from_node(
+            self.active_tab.root)]
