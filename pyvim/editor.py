@@ -77,6 +77,9 @@ class _Editor(object):
 
         self.lsp: Dict[str, lsp_client.LSPClient] = {}
 
+        from .event_dispatcher import DISPATCHER, EventType
+        DISPATCHER.register(EventType.NewEditorBuffer, self.launch)
+
     def layout(self):
         # Ensure config directory exists.
         config_directory = pathlib.Path(os.path.expanduser('~')) / '.pyvim'
@@ -217,8 +220,8 @@ class _Editor(object):
             self.application.vi_state.input_mode = prompt_toolkit.key_binding.vi_state.InputMode.NAVIGATION
 
             assert(self.application.loop)
-            from .event_queue import worker
-            self.application.loop.create_task(worker())
+            from .event_dispatcher import DISPATCHER
+            DISPATCHER.start(self.application.loop)
 
         # Run eventloop of prompt_toolkit.
         self.application.run(pre_run=pre_run)

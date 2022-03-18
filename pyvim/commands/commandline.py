@@ -1,4 +1,3 @@
-from . import commands
 import logging
 import pathlib
 from prompt_toolkit.application.current import get_app
@@ -29,8 +28,8 @@ class CommandLine(prompt_toolkit.layout.containers.ConditionalContainer):
             self.leave_command_mode(append_to_history=True)
 
             # Execute command.
-            from pyvim.event_queue import enqueue_command
-            enqueue_command(text)
+            from .handler import handle_command
+            handle_command(text)
 
             return False
 

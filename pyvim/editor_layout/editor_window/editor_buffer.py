@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, NamedTuple
 import logging
 import pathlib
 import os
@@ -56,8 +56,8 @@ class EditorBuffer(object):
         self.report_errors = []
         self._reporter_is_running = False
 
-        from pyvim.event_queue import enqueue_new_buffer
-        enqueue_new_buffer(self)
+        from pyvim.event_dispatcher import DISPATCHER, EventType
+        DISPATCHER.enqueue(EventType.NewEditorBuffer, self)
 
     @property
     def filetype(self) -> str:
