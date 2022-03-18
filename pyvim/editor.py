@@ -25,8 +25,8 @@ import prompt_toolkit.output
 import prompt_toolkit.layout
 import prompt_toolkit.cursor_shapes
 from .commands.commandline import CommandLine
-from .editor_window.window_arrangement import WindowArrangement
-from .editor_window.editor_buffer import EditorBuffer
+from .editor_root.window_arrangement import WindowArrangement
+from .editor_root.editor_buffer import EditorBuffer
 from .lsp import lsp_client
 logger = logging.getLogger(__name__)
 

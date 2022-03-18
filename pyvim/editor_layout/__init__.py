@@ -20,15 +20,15 @@ class EditorLayout(object):
     """
 
     def __init__(self, config_directory: pathlib.Path):
-        from .. import editor_window
-        self.editor_root, tabbar = editor_window.create(config_directory)
-
+        from ..editor_root import EditorRoot
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar
+        from .logger import LoggerWindow
 
+        self.editor_root = EditorRoot(config_directory)
         editor_layout = prompt_toolkit.layout.FloatContainer(
             content=prompt_toolkit.layout.HSplit([
-                tabbar,
+                self.editor_root.tabbar,
                 self.editor_root,
                 self.editor_root.commandline,
                 ReportMessageToolbar(self.editor_root.commandline.has_focus),
@@ -41,9 +41,7 @@ class EditorLayout(object):
             ]
         )
 
-        from .logger import LoggerWindow
         logger_window = LoggerWindow()
-
         editor_logger = prompt_toolkit.layout.HSplit([
             editor_layout,
             logger_window,

@@ -1,8 +1,10 @@
+from typing import Tuple
 import pathlib
 import prompt_toolkit.layout
 import prompt_toolkit.filters
 import prompt_toolkit.widgets
 import prompt_toolkit.layout.processors
+from .tabs_control import TabsToolbar
 
 
 class EditorRoot:
@@ -43,6 +45,8 @@ class EditorRoot:
                                             width=WELCOME_MESSAGE_WIDTH),
             ]
         )
+
+        self.tabbar = TabsToolbar(self.window_arrangement)
 
     def __pt_container__(self):
         return self.container
