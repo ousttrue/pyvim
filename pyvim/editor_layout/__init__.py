@@ -20,8 +20,8 @@ class EditorLayout(object):
     """
 
     def __init__(self, config_directory: pathlib.Path):
-        from .editor_window import create
-        self.editor_root, tabbar = create(config_directory)
+        from .. import editor_window
+        self.editor_root, tabbar = editor_window.create(config_directory)
 
         from .report_message_toolbar import ReportMessageToolbar
         from .simple_arg_toolbar import SimpleArgToolbar

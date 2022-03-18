@@ -10,13 +10,13 @@ class EditorRoot:
         from .window_arrangement import WindowArrangement
         self.window_arrangement = WindowArrangement(config_directory)
 
-        from ..welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
-        from ..buffer_list import BufferListOverlay, _bufferlist_overlay_visible
-        from ..message_toolbar import MessageToolbarBar
+        from .welcome_message import WelcomeMessageWindow, WELCOME_MESSAGE_HEIGHT, WELCOME_MESSAGE_WIDTH
+        from .buffer_list import BufferListOverlay, _bufferlist_overlay_visible
+        from .message_toolbar import MessageToolbarBar
         from pyvim.editor import get_editor
         editor = get_editor()
 
-        from ...commands.commandline import CommandLine
+        from ..commands.commandline import CommandLine
         self.commandline = CommandLine(config_directory)
 
         self.container = prompt_toolkit.layout.FloatContainer(

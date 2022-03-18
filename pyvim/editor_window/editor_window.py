@@ -27,14 +27,14 @@ def create_buffer_control(search_control, editor_buffer: EditorBuffer):
     """
     @prompt_toolkit.filters.Condition
     def preview_search():
-        from ...editor import get_editor
+        from pyvim.editor import get_editor
         editor = get_editor()
         return editor.incsearch
 
-    from ...editor import get_editor
+    from pyvim.editor import get_editor
     editor = get_editor()
 
-    from ..reporting_processor import ReportingProcessor
+    from .reporting_processor import ReportingProcessor
     input_processors = [
         # Processor for visualising spaces. (should come before the
         # selection processor, otherwise, we won't see these spaces
@@ -83,11 +83,11 @@ class EditorWindow:
         """
         @prompt_toolkit.filters.Condition
         def wrap_lines():
-            from ...editor import get_editor
+            from pyvim.editor import get_editor
             editor = get_editor()
             return editor.wrap_lines
 
-        from ...editor import get_editor
+        from pyvim.editor import get_editor
         editor = get_editor()
 
         def get_line_prefix(buffer, line_number, wrap_count):
@@ -95,7 +95,7 @@ class EditorWindow:
                 result = []
 
                 # Add 'breakindent' prefix.
-                from ...editor import get_editor
+                from pyvim.editor import get_editor
                 editor = get_editor()
                 if editor.break_indent:
                     line = buffer.document.lines[line_number]
@@ -130,8 +130,8 @@ class EditorWindow:
             ignore_content_height=True,
             get_line_prefix=partial(get_line_prefix, editor_buffer.buffer))
 
-        from ..window_statusbar import WindowStatusBar
-        from ..window_statusbar_ruler import WindowStatusBarRuler
+        from .window_statusbar import WindowStatusBar
+        from .window_statusbar_ruler import WindowStatusBarRuler
 
         self.container = prompt_toolkit.layout.HSplit([
             self.window,
