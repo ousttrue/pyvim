@@ -151,9 +151,8 @@ def create_key_bindings():
         Open file/directory in file explorer mode.
         """
         name_under_cursor = event.current_buffer.document.current_line
-        new_path = os.path.normpath(os.path.join(
-            editor.current_editor_buffer.location, name_under_cursor))
-
+        assert(editor.current_editor_buffer)
+        new_path = editor.current_editor_buffer.location / name_under_cursor
         editor.window_arrangement.open_buffer(
             new_path, show_in_current_window=True)
         editor.sync_with_prompt_toolkit()

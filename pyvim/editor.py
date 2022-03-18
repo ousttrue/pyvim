@@ -303,7 +303,7 @@ class _Editor(object):
                 lsp.launch(lsp_client.PYTHON)
                 self.lsp[ft] = lsp
         else:
-            logger.warn(f'unknown file type: {ft}')
+            logger.warning(f'unknown file type: {ft}')
 
 
 EDITOR = _Editor()

@@ -1,5 +1,6 @@
 from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.document import Document
+import pathlib
 import logging
 import os
 import re
@@ -280,7 +281,7 @@ def buffer_edit(editor, location, force=False):
     else:
         editor.file_explorer = ''
         editor.window_arrangement.open_buffer(
-            location, show_in_current_window=True)
+            pathlib.Path(location).absolute(), show_in_current_window=True)
 
 
 @cmd('q', accepts_force=True)
